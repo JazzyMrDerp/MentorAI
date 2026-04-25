@@ -89,7 +89,7 @@ export function renderDashboardScreen(options: DashboardScreenOptions): {
       <div class="dashboard__hero-copy">
         <div class="dashboard__hero-badges">
           <span class="app-brand">
-            <span class="app-brand__mark"><i data-lucide="sparkles"></i></span>
+            <span class="app-brand__mark pulse-glow"><i data-lucide="sparkles"></i></span>
             ${copy.brand}
           </span>
           <span class="status-pill ${options.isOnline ? 'status-pill--online' : 'status-pill--offline'}">
@@ -117,8 +117,8 @@ export function renderDashboardScreen(options: DashboardScreenOptions): {
             <span>${copy.profile.eyebrow}</span>
             <strong>${escapeHtml(options.profile?.nickname ?? copy.profile.placeholderName)}</strong>
           </div>
-          <span class="pill">
-            <i data-lucide="award"></i>
+          <span class="pill" style="background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.08)); border-color: rgba(255, 215, 0, 0.25);">
+            <i data-lucide="award" style="color: var(--gold);"></i>
             ${copy.profile.level} ${options.profile?.currentLevel ?? 1}
           </span>
         </div>
@@ -127,7 +127,7 @@ export function renderDashboardScreen(options: DashboardScreenOptions): {
             <div class="dashboard__xp-fill" data-fill="${progress.width.toFixed(1)}%"></div>
           </div>
           <div class="dashboard__xp-meta">
-            <span>${copy.profile.totalXp}: ${options.profile?.totalXP ?? 0}</span>
+            <span style="color: var(--gold);">${copy.profile.totalXp}: ${options.profile?.totalXP ?? 0}</span>
             <span>${copy.profile.nextLevel}: ${progress.remaining} XP</span>
           </div>
         </div>
@@ -160,16 +160,16 @@ export function renderDashboardScreen(options: DashboardScreenOptions): {
                 <label>${copy.profile.languageLabel}</label>
                 <div class="segmented" data-language-switcher>
                   <button class="segmented__option ${language === 'en' ? 'is-active' : ''}" type="button" data-language="en">English</button>
-                  <button class="segmented__option ${language === 'es' ? 'is-active' : ''}" type="button" data-language="es">Espanol</button>
+                  <button class="segmented__option ${language === 'es' ? 'is-active' : ''}" type="button" data-language="es">Español</button>
                 </div>
               </div>
-              <div class="button-row">
-                <span class="chip">
-                  <i data-lucide="badge-check"></i>
+              <div class="button-row" style="margin-top: 18px;">
+                <span class="chip" style="background: linear-gradient(135deg, rgba(72, 209, 204, 0.12), rgba(72, 209, 204, 0.06)); border-color: rgba(72, 209, 204, 0.25);">
+                  <i data-lucide="badge-check" style="color: var(--teal);"></i>
                   ${copy.profile.deviceSafe}
                 </span>
-                <span class="chip">
-                  <i data-lucide="shield"></i>
+                <span class="chip" style="background: linear-gradient(135deg, rgba(108, 99, 255, 0.12), rgba(108, 99, 255, 0.06)); border-color: rgba(108, 99, 255, 0.25);">
+                  <i data-lucide="shield" style="color: var(--purple);"></i>
                   ${copy.profile.privacySafe}
                 </span>
               </div>
@@ -195,12 +195,12 @@ export function renderDashboardScreen(options: DashboardScreenOptions): {
                   <label>${copy.onboarding.languageLabel}</label>
                   <div class="segmented" data-language-picker>
                     <button class="segmented__option is-active" type="button" data-language="en">English</button>
-                    <button class="segmented__option" type="button" data-language="es">Espanol</button>
+                    <button class="segmented__option" type="button" data-language="es">Español</button>
                   </div>
                 </div>
                 <input type="hidden" name="grade" value="7" />
                 <input type="hidden" name="language" value="en" />
-                <button class="button button--teal" type="submit">
+                <button class="button button--teal" type="submit" style="margin-top: 8px;">
                   <i data-lucide="user-round-plus"></i>
                   ${copy.onboarding.submit}
                 </button>
@@ -218,32 +218,34 @@ export function renderDashboardScreen(options: DashboardScreenOptions): {
         ${subjects
           .map(
             (subject) => `
-              <article class="subject-card ${subject.accentClass}">
+              <article class="subject-card ${subject.accentClass} floating" style="animation-delay: ${subject.subject === 'math' ? '0s' : '0.2s'};">
                 <div class="subject-card__head">
                   <div class="subject-card__label">
                     <span class="subject-card__icon ${subject.subject === 'math' ? 'subject-card__icon--math' : 'subject-card__icon--ela'}">
                       <i data-lucide="${subject.icon}"></i>
                     </span>
                     <div>
-                      <p class="eyebrow">${subject.title}</p>
-                      <strong>${subject.count} ${copy.subjects.lessonCountLabel}</strong>
+                      <p class="eyebrow" style="color: ${subject.subject === 'math' ? '#c4bdff' : '#b3fff8'};">${subject.title}</p>
+                      <strong style="font-size: 1rem;">${subject.count} ${copy.subjects.lessonCountLabel}</strong>
                     </div>
                   </div>
-                  <span class="meta-pill">${subject.xp} XP</span>
+                  <span class="meta-pill" style="background: ${subject.subject === 'math' ? 'rgba(108, 99, 255, 0.15)' : 'rgba(72, 209, 204, 0.15)'}; border-color: ${subject.subject === 'math' ? 'rgba(108, 99, 255, 0.3)' : 'rgba(72, 209, 204, 0.3)'}; color: ${subject.subject === 'math' ? '#c4bdff' : '#b3fff8'};">
+                    ${subject.xp} XP
+                  </span>
                 </div>
                 <div class="subject-card__body">
                   <strong>${escapeHtml(subject.nextLesson?.title ?? copy.subjects.waitingTitle)}</strong>
-                  <p>${escapeHtml(subject.nextLesson?.content.split(/\n+/)[0] ?? copy.subjects.waitingBody)}</p>
+                  <p style="font-size: 0.9rem;">${escapeHtml(subject.nextLesson?.content.split(/\n+/)[0] ?? copy.subjects.waitingBody)}</p>
                 </div>
                 <div class="subject-card__progress">
                   <div class="subject-card__track">
                     <span style="width: ${subject.progress}%"></span>
                   </div>
-                  <p class="muted">${copy.subjects.progressLabel}</p>
+                  <p class="muted" style="font-size: 0.82rem;">${copy.subjects.progressLabel}</p>
                 </div>
                 <div class="subject-card__footer">
-                  <span>${copy.subjects.footer}</span>
-                  <button class="button" type="button" data-open-subject="${subject.subject}" ${options.profile ? '' : 'disabled'}>
+                  <span style="font-size: 0.85rem;">${copy.subjects.footer}</span>
+                  <button class="button" type="button" data-open-subject="${subject.subject}" ${options.profile ? '' : 'disabled'} style="min-height: 40px; padding: 0 16px;">
                     <i data-lucide="arrow-right"></i>
                     ${copy.subjects.open}
                   </button>
@@ -327,30 +329,46 @@ export function renderDashboardScreen(options: DashboardScreenOptions): {
     element: screen,
     afterMount: () => {
       gsap.from(screen.querySelectorAll('.dashboard__hero-copy > *'), {
-        duration: 0.7,
-        opacity: 0.82,
-        y: 10,
-        stagger: 0.08,
+        duration: 0.8,
+        opacity: 0,
+        y: 20,
+        stagger: 0.1,
         ease: 'power3.out',
       });
 
-      gsap.from(screen.querySelectorAll('.dashboard__panel, .subject-card, .stat-tile'), {
-        duration: 0.72,
-        opacity: 0.86,
-        y: 12,
-        stagger: 0.08,
+      gsap.from('.dashboard__stats', {
+        duration: 0.9,
+        opacity: 0,
+        x: 30,
         ease: 'power3.out',
-        delay: 0.14,
+        delay: 0.2,
+      });
+
+      gsap.from(screen.querySelectorAll('.dashboard__panel, .subject-card, .stat-tile'), {
+        duration: 0.75,
+        opacity: 0,
+        y: 24,
+        stagger: 0.1,
+        ease: 'power3.out',
+        delay: 0.35,
+      });
+
+      gsap.from('.subject-card', {
+        duration: 0.6,
+        scale: 0.95,
+        stagger: 0.15,
+        ease: 'back.out(1.7)',
+        delay: 0.5,
       });
 
       const xpFill = screen.querySelector<HTMLElement>('.dashboard__xp-fill');
       const targetWidth = xpFill?.dataset.fill;
       if (xpFill && targetWidth) {
         gsap.to(xpFill, {
-          duration: 1.1,
+          duration: 1.4,
           width: targetWidth,
-          ease: 'power3.out',
-          delay: 0.25,
+          ease: 'elastic.out(1, 0.75)',
+          delay: 0.6,
         });
       }
     },
