@@ -141,7 +141,30 @@ export async function updateProfile(
 ): Promise<void> {
   const profile = await getProfile(nickname);
   if (!profile) return;
+  
+  const currentXP = profile.totalXP;
+  const newXP = updates.totalXP ?? currentXP;
+  calculateLevel(newXP);
+  
   await db.studentProfile.update(profile.id as number, updates);
+}
+
+export function calculateLevel(xp: number): number {
+  if (xp >= 1000) return 5;
+  if (xp >= 700) return 4;
+  if (xp >= 450) return 3;
+  if (xp >= 250) return 2;
+  return 1;
+}
+
+export function calculateStreak(lastActive: string, currentStreak: number): number {
+  const last = new Date(lastActive);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 0) return currentStreak;
+  if (diffDays === 1) return currentStreak + 1;
+  return 1;
 }
 
 // ── Sync Queue ────────────────────────────────────────────────────────────────
