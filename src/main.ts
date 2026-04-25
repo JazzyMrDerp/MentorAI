@@ -1,24 +1,34 @@
-import './style.css'
-import typescriptLogo from './typescript.svg'
-import viteLogo from '/vite.svg'
-import { setupCounter } from './counter.ts'
+// src/main.ts
+import { initOfflineSync, registerSyncCallbacks } from '../utils/offline';
+import { preloadLessons } from './preload';
 
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-  <div>
-    <a href="https://vitejs.dev" target="_blank">
-      <img src="${viteLogo}" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://www.typescriptlang.org/" target="_blank">
-      <img src="${typescriptLogo}" class="logo vanilla" alt="TypeScript logo" />
-    </a>
-    <h1>Vite + TypeScript</h1>
-    <div class="card">
-      <button id="counter" type="button"></button>
-    </div>
-    <p class="read-the-docs">
-      Click on the Vite and TypeScript logos to learn more
-    </p>
-  </div>
-`
+function showToast(message: string): void {
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3500);
+}
 
-setupCounter(document.querySelector<HTMLButtonElement>('#counter')!)
+registerSyncCallbacks({
+  onSyncStart: () => {
+    document.querySelector('.sync-badge')?.setAttribute('data-status', 'syncing');
+  },
+  onSyncComplete: (count: number) => {
+    document.querySelector('.sync-badge')?.setAttribute('data-status', 'online');
+    if (count > 0) showToast(`✨ Synced ${count} new items`);
+  },
+  onStatusChange: (online: boolean) => {
+    document.querySelector('.sync-badge')?.setAttribute('data-status', online ? 'online' : 'offline');
+    showToast(online
+      ? '🟢 Back online — syncing...'
+      : '🔴 Offline mode — progress still saves'
+    );
+  }
+});
+
+initOfflineSync();
+
+preloadLessons((current: number, total: number) => {
+  console.log(`[Preload] ${current}/${total} lessons ready`);
+});
