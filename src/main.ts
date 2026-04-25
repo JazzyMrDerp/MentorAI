@@ -1,11 +1,13 @@
 import './style.css';
 import type { StudentProfile, Subject } from './types';
 import { db, getProfile, updateProfile, createProfile, calculateLevel, calculateStreak } from './db';
-import { calculateScore, selectAnswer, goToNextQuestion, useHint, getQuestionProgress } from './screens/quiz';
+import { startQuiz, calculateScore, selectAnswer, goToNextQuestion, getQuestionProgress, getCurrentQuestion } from './screens/quiz';
 import { loadTeacherData, renderTeacherDashboard } from './screens/teacher';
+import confetti from 'canvas-confetti';
 
 let appContainer: HTMLElement | null = null;
 let currentNickname: string = '';
+let currentLessonData: { title: string; questions: { prompt: string; choices: string[]; hint: string }[] } | null = null;
 
 const XP_THRESHOLDS = [0, 250, 450, 700, 1000, 1500];
 const LEVEL_TITLES = ['Newcomer', 'Learner', 'Scholar', 'Ace', 'Master', 'Champion'];
@@ -17,8 +19,9 @@ function getLevelTitle(level: number): string {
 function getXPProgress(currentXP: number): number {
   const level = calculateLevel(currentXP);
   if (level >= XP_THRESHOLDS.length - 1) return 100;
-  const currentThreshold = XP_THRESHOLDS[level];
-  const nextThreshold = XP_THRESHOLDS[level + 1];
+  if (level < 1) return currentXP;
+  const currentThreshold = XP_THRESHOLDS[level - 1];
+  const nextThreshold = XP_THRESHOLDS[level];
   return Math.round(((currentXP - currentThreshold) / (nextThreshold - currentThreshold)) * 100);
 }
 
@@ -59,6 +62,12 @@ function renderDashboard(profile: StudentProfile): string {
   const mathXP = profile.mathXP || 0;
   const elaXP = profile.elaXP || 0;
   
+  const currentLvl = profile.currentLevel;
+  const currentThresh = currentLvl > 1 ? XP_THRESHOLDS[currentLvl - 1] : 0;
+  const nextThresh = XP_THRESHOLDS[currentLvl] || 'MAX';
+  const xpNeeded = typeof nextThresh === 'number' ? nextThresh - currentThresh : 0;
+  const xpProgressed = profile.totalXP - currentThresh;
+  
   return `
     <div class="dashboard">
       <header class="dashboard-header">
@@ -73,7 +82,7 @@ function renderDashboard(profile: StudentProfile): string {
         <div class="xp-bar">
           <div class="xp-fill" style="width: ${xpProgress}%"></div>
         </div>
-        <p class="xp-text">${profile.totalXP} XP — ${XP_THRESHOLDS[profile.currentLevel] || 0} / ${XP_THRESHOLDS[profile.currentLevel + 1] || 'MAX'} to next level</p>
+        <p class="xp-text">${xpProgressed} / ${xpNeeded} XP to next level</p>
       </div>
       
       <div class="streak-display">
@@ -104,38 +113,42 @@ function renderQuizScreen(lesson: { title: string; questions: { prompt: string; 
   const progress = getQuestionProgress();
   const question = lesson.questions[progress.current - 1];
   
-  return `
-    <div class="quiz-screen">
-      <header class="quiz-header">
-        <button class="btn-back" data-screen="dashboard">← Back</button>
-        <h2>${lesson.title}</h2>
-        <div class="question-counter">${progress.current}/${progress.total}</div>
-      </header>
+const isLastQ = progress.current === progress.total;
+      const nextText = isLastQ ? 'Finish Quiz' : 'Next →';
+      const nextBg = isLastQ ? '#22c55e' : '';
       
-      <div class="progress-dots">
-        ${lesson.questions.map((_, i) => `
-          <span class="dot ${i < progress.current - 1 ? 'completed' : i === progress.current - 1 ? 'current' : ''}"></span>
-        `).join('')}
-      </div>
-      
-      <div class="question-container">
-        <p class="question-prompt">${question.prompt}</p>
-        
-        <div class="choices">
-          ${question.choices.map((choice, i) => `
-            <button class="choice-btn" data-index="${i}">${choice}</button>
-          `).join('')}
+      return `
+        <div class="quiz-screen">
+          <header class="quiz-header">
+            <button class="btn-back" data-screen="dashboard">← Back</button>
+            <h2>${lesson.title}</h2>
+            <div class="question-counter">${progress.current}/${progress.total}</div>
+          </header>
+          
+          <div class="progress-dots">
+            ${lesson.questions.map((_, i) => `
+              <span class="dot ${i < progress.current - 1 ? 'completed' : i === progress.current - 1 ? 'current' : ''}"></span>
+            `).join('')}
+          </div>
+          
+          <div class="question-container">
+            <p class="question-prompt">${question.prompt}</p>
+            
+            <div class="choices">
+              ${question.choices.map((choice, i) => `
+                <button class="choice-btn" data-index="${i}">${choice}</button>
+              `).join('')}
+            </div>
+            
+            <button class="btn-hint" id="hint-btn">💡 Use Hint</button>
+          </div>
+          
+          <div class="quiz-navigation">
+            <button class="btn-nav prev" id="prev-btn" ${progress.current === 1 ? 'disabled' : ''}>← Previous</button>
+            <button class="btn-nav next" id="next-btn" style="background: ${nextBg || ''}">${nextText}</button>
+          </div>
         </div>
-        
-        <button class="btn-hint" id="hint-btn">💡 Use Hint</button>
-      </div>
-      
-      <div class="quiz-navigation">
-        <button class="btn-nav prev" id="prev-btn" ${progress.current === 1 ? 'disabled' : ''}>← Previous</button>
-        <button class="btn-nav next" id="next-btn" ${progress.current === progress.total ? 'disabled' : ''}>Next →</button>
-      </div>
-    </div>
-  `;
+      `;
 }
 
 function renderQuizResults(score: number, xpEarned: number): string {
@@ -161,6 +174,47 @@ function renderQuizResults(score: number, xpEarned: number): string {
   `;
 }
 
+function getCurrentLessonData(): { title: string; questions: { prompt: string; choices: string[]; hint: string }[] } {
+  return currentLessonData || { title: 'Lesson', questions: [] };
+}
+
+function triggerConfettiAnimation(): void {
+  confetti({
+    particleCount: 100,
+    spread: 70,
+    origin: { y: 0.6 },
+    colors: ['#3b82f6', '#22c55e', '#f59e0b', '#8b5cf6']
+  });
+}
+
+function showAttemptMessage(message: string, isHint: boolean = false): void {
+  const questionContainer = document.querySelector('.question-container');
+  if (!questionContainer) return;
+  
+  const existing = document.querySelector('.feedback-message');
+  if (existing) existing.remove();
+  
+  const feedback = document.createElement('div');
+  feedback.className = 'feedback-message';
+  feedback.textContent = message;
+  feedback.style.cssText = `
+    padding: 0.75rem 1rem;
+    margin-top: 0.75rem;
+    border-radius: 8px;
+    font-weight: 500;
+    text-align: center;
+    animation: slideIn 0.3s ease;
+    ${isHint ? 'background: #fef3c7; color: #92400e; border: 2px solid #f59e0b;' : 'background: #fef2f2; color: #991b1b; border: 2px solid #ef4444;'}
+  `;
+  
+  questionContainer.appendChild(feedback);
+  
+  if (isHint) {
+    const hintBtn = document.getElementById('hint-btn');
+    if (hintBtn) (hintBtn as HTMLButtonElement).disabled = true;
+  }
+}
+
 function navigate(screen: string, data?: unknown): void {
   if (!appContainer) return;
   
@@ -176,7 +230,8 @@ function navigate(screen: string, data?: unknown): void {
       });
       break;
     case 'quiz':
-      appContainer!.innerHTML = renderQuizScreen(data as { title: string; questions: { prompt: string; choices: string[]; hint: string }[] });
+      currentLessonData = data as { title: string; questions: { prompt: string; choices: string[]; hint: string }[] };
+      appContainer!.innerHTML = renderQuizScreen(currentLessonData);
       break;
     case 'results':
       const result = data as { score: number; xpEarned: number };
@@ -235,7 +290,52 @@ function setupEventListeners(): void {
     
     if (target.dataset.subject) {
       const subject = target.dataset.subject as Subject;
-      alert(`Lesson loading for ${subject}... (Demo)`);
+      const demoLesson = {
+        id: 1,
+        subject,
+        grade: 6,
+        language: 'en',
+        title: subject === 'math' ? 'Introduction to Fractions' : 'Finding the Main Idea',
+        content: subject === 'math' ? 'Learn about fractions!' : 'Learn about reading comprehension!',
+        isPreloaded: true,
+        createdAt: new Date().toISOString(),
+        questions: [
+          {
+            prompt: subject === 'math' ? 'What is 1/2 + 1/4?' : 'What is the main idea of this passage?',
+            choices: subject === 'math' ? ['1/6', '3/4', '2/6', '1/3'] : ['The weather', 'The adventure', 'Friendship', 'The ending'],
+            correctIndex: 1,
+            hint: subject === 'math' ? 'Find a common denominator first.' : 'Look for the central message.'
+          },
+          {
+            prompt: subject === 'math' ? 'What is 3/4 + 1/4?' : 'Which detail supports the main idea?',
+            choices: subject === 'math' ? ['1', '4/4', '2/4', '1/2'] : ['The weather changed', 'They learned a lesson', 'It was raining', 'Everyone cheered'],
+            correctIndex: 1,
+            hint: subject === 'math' ? 'Add the numerators.' : 'Find the detail that explains the main idea.'
+          },
+          {
+            prompt: subject === 'math' ? 'What is 1 - 1/3?' : 'What is a summmary of the passage?',
+            choices: subject === 'math' ? ['2/3', '1/3', '1/9', '0'] : ['A story about animals', 'A story about friends', 'A story about food', 'A story about travel'],
+            correctIndex: 0,
+            hint: subject === 'math' ? 'Subtract the numerators.' : 'Combine all key points.'
+          },
+          {
+            prompt: subject === 'math' ? 'What is 2/3 × 3?' : 'The author most likely wrote this to:',
+            choices: subject === 'math' ? ['6', '2', '6/3', '1'] : ['Entertain', 'Complain', 'Advertise', 'Argue'],
+            correctIndex: 0,
+            hint: subject === 'math' ? 'Multiply the numerator by 3.' : 'Think about the purpose.'
+          },
+          {
+            prompt: subject === 'math' ? 'Which is equivalent to 1/2?' : 'What type of passage is this?',
+            choices: subject === 'math' ? ['2/4', '1/4', '3/4', '1/3'] : ['Fiction', 'Non-fiction', 'Poetry', 'Drama'],
+            correctIndex: 0,
+            hint: subject === 'math' ? 'Multiply top and bottom by 2.' : 'Look at the structure.'
+          }
+        ]
+      };
+      
+      startQuiz(demoLesson as any, { hintsRemaining: 3 }).then(() => {
+        navigate('quiz', demoLesson);
+      });
       return;
     }
     
@@ -244,28 +344,90 @@ function setupEventListeners(): void {
       selectAnswer(index);
       
       const buttons = appContainer?.querySelectorAll('.choice-btn');
-      buttons?.forEach((btn) => {
-        btn.classList.toggle('selected', btn === target);
-      });
+      const allButtons = Array.from(buttons || []);
+      
+      const isCorrect = index === 1;
+      
+      if (isCorrect) {
+        allButtons.forEach((btn) => {
+          btn.classList.remove('selected');
+          btn.classList.remove('correct', 'incorrect');
+          (btn as HTMLButtonElement).disabled = true;
+        });
+        
+        allButtons[index]?.classList.add('correct');
+        
+        setTimeout(() => {
+          const progress = getQuestionProgress();
+          const isLastQuestion = progress.current === progress.total;
+          
+          const nextBtn = document.getElementById('next-btn');
+          if (nextBtn) {
+            if (isLastQuestion) {
+              nextBtn.textContent = 'Finish Quiz';
+              nextBtn.style.background = '#22c55e';
+            } else {
+              nextBtn.textContent = 'Next →';
+              nextBtn.style.background = '';
+            }
+          }
+        }, 500);
+      } else {
+        showAttemptMessage('Incorrect. Try again!');
+        
+        allButtons.forEach((btn) => {
+          btn.classList.remove('selected');
+          (btn as HTMLButtonElement).disabled = false;
+        });
+      }
       return;
     }
     
     if (target.id === 'next-btn') {
-      const hasNext = goToNextQuestion();
-      if (!hasNext) {
+      const btnText = target.textContent?.trim() || '';
+      const isFinish = btnText === 'Finish Quiz';
+      
+      if (isFinish) {
+        const profile = await getProfile(currentNickname);
+        const oldLevel = profile?.currentLevel || 1;
+        
         const score = calculateScore();
         const xpEarned = Math.floor(score / 10) + 10;
-        navigate('results', { score, xpEarned });
+        
+        if (profile) {
+          const newXP = profile.totalXP + xpEarned;
+          const newLevel = calculateLevel(newXP);
+          
+          await updateProfile(currentNickname, {
+            totalXP: newXP,
+            currentLevel: newLevel,
+            lastActive: new Date().toISOString()
+          });
+          
+          if (newLevel > oldLevel) {
+            setTimeout(() => triggerConfettiAnimation(), 300);
+          }
+        }
+        
+        appContainer!.innerHTML = renderQuizResults(score, xpEarned);
+      } else {
+        const progress = getQuestionProgress();
+        
+        if (progress.current < progress.total) {
+          const hasNext = goToNextQuestion();
+          if (hasNext) {
+            const lesson = getCurrentLessonData();
+            appContainer!.innerHTML = renderQuizScreen(lesson);
+          }
+        }
       }
       return;
     }
     
     if (target.id === 'hint-btn') {
-      const used = useHint();
-      if (used) {
-        const { getHint } = await import('./screens/quiz');
-        alert('Hint: ' + getHint());
-        target.setAttribute('disabled', 'true');
+      const question = getCurrentQuestion();
+      if (question) {
+        showAttemptMessage('💡 Hint: ' + question.hint, true);
       }
       return;
     }
