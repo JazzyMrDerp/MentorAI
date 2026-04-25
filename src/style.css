@@ -13,6 +13,119 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: #242424;
+}
+
+#app {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+h1 {
+  font-size: 2em;
+  margin: 0;
+}
+
+.sync-badge {
+  padding: 0.25em 0.75em;
+  border-radius: 1em;
+  font-size: 0.875em;
+  background: #22c55e;
+  color: white;
+}
+
+.sync-badge[data-status="offline"] { background: #ef4444; }
+.sync-badge[data-status="syncing"] { background: #f59e0b; }
+
+.stats {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  flex: 1;
+  padding: 1.5rem;
+  background: #1a1a1a;
+  border-radius: 0.5rem;
+  text-align: center;
+}
+
+.stat-value {
+  display: block;
+  font-size: 2em;
+  font-weight: bold;
+}
+
+.stat-label {
+  color: #888;
+  font-size: 0.875em;
+}
+
+.lessons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.lesson-card {
+  padding: 1rem;
+  background: #1a1a1a;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.lesson-card[data-subject="math"] { border-left: 3px solid #3b82f6; }
+.lesson-card[data-subject="ela"] { border-left: 3px solid #a855f7; }
+
+.lesson-card h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1em;
+}
+
+.lesson-card p {
+  margin: 0;
+  color: #888;
+  font-size: 0.875em;
+}
+
+.toast {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.75em 1.5em;
+  background: #1a1a1a;
+  border-radius: 0.5rem;
+  animation: toast-in 0.3s ease;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(1rem); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.loading, .offline-message {
+  text-align: center;
+  padding: 4rem;
+}
+
 a {
   font-weight: 500;
   color: #646cff;

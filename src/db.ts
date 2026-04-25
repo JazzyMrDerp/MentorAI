@@ -44,6 +44,13 @@ export async function getLessons(
 }
 
 /**
+ * Fetch all lessons from the database.
+ */
+export async function getAllLessons(): Promise<Lesson[]> {
+  return db.lessons.toArray();
+}
+
+/**
  * Save a single Gemini-generated lesson to the local database.
  * Returns the auto-assigned numeric id of the new record.
  */

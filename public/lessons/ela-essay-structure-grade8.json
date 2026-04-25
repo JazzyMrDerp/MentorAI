@@ -1,0 +1,39 @@
+{
+  "subject": "ela",
+  "grade": 8,
+  "language": "en",
+  "title": "Essay Structure",
+  "content": "Most essays have an introduction, body paragraphs, and a conclusion. The introduction introduces the topic and thesis. Body paragraphs explain ideas with evidence. The conclusion restates the main point and wraps up the essay.",
+  "questions": [
+    {
+      "prompt": "What usually appears in the introduction?",
+      "choices": ["Thesis statement", "Only examples", "Final goodbye", "Bibliography only"],
+      "correctIndex": 0,
+      "hint": "The thesis tells the main argument."
+    },
+    {
+      "prompt": "What is the purpose of body paragraphs?",
+      "choices": ["Support the thesis", "Hide the topic", "Replace the title", "End the essay immediately"],
+      "correctIndex": 0,
+      "hint": "Body paragraphs explain and prove ideas."
+    },
+    {
+      "prompt": "What should evidence do?",
+      "choices": ["Support a claim", "Confuse the reader", "Remove details", "Change the font"],
+      "correctIndex": 0,
+      "hint": "Evidence helps prove the point."
+    },
+    {
+      "prompt": "What does the conclusion usually do?",
+      "choices": ["Introduces a brand new unrelated topic", "Wraps up the essay", "Deletes the thesis", "Starts the first body paragraph"],
+      "correctIndex": 1,
+      "hint": "The conclusion is the ending."
+    },
+    {
+      "prompt": "Which order is best for an essay?",
+      "choices": ["Conclusion, body, introduction", "Introduction, body, conclusion", "Body, conclusion, introduction", "Evidence, title, comma"],
+      "correctIndex": 1,
+      "hint": "Start with the intro and end with the conclusion."
+    }
+  ]
+}

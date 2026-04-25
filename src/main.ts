@@ -1,6 +1,10 @@
 // src/main.ts
 import { initOfflineSync, registerSyncCallbacks } from '../utils/offline';
 import { preloadLessons } from './preload';
+import { getAllLessons } from './db';
+import { renderLoading, renderOffline, renderDashboard } from './app';
+
+const app = document.getElementById('app')!;
 
 function showToast(message: string): void {
   const toast = document.createElement('div');
@@ -27,8 +31,33 @@ registerSyncCallbacks({
   }
 });
 
-initOfflineSync();
+async function initApp(): Promise<void> {
+  renderLoading();
 
-preloadLessons((current: number, total: number) => {
-  console.log(`[Preload] ${current}/${total} lessons ready`);
-});
+  await initOfflineSync();
+
+  if (!navigator.onLine) {
+    renderOffline();
+    return;
+  }
+
+  await preloadLessons((current: number, total: number) => {
+    console.log(`[Preload] ${current}/${total} lessons ready`);
+  });
+
+  const lessons = await getAllLessons();
+  
+  if (lessons.length === 0) {
+    app.innerHTML = `
+      <div class="no-lessons">
+        <h1>Welcome to MentorAI!</h1>
+        <p>No lessons found. Check your connection and refresh.</p>
+      </div>
+    `;
+    return;
+  }
+  
+  renderDashboard(lessons);
+}
+
+initApp();
