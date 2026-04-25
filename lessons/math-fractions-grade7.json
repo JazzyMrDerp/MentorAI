@@ -3,37 +3,19 @@
   "grade": 7,
   "language": "en",
   "title": "Introduction to Fractions",
-  "content": "A fraction represents a part of a whole. The numerator is the top number and shows how many parts you have. The denominator is the bottom number and shows how many equal parts the whole is divided into. To add fractions, they must have the same denominator.",
+  "content": "A fraction represents a part of a whole. The numerator is the top number, and the denominator is the bottom number.",
   "questions": [
     {
       "prompt": "What is the numerator?",
-      "choices": ["Top number", "Bottom number", "Whole number", "Decimal"],
+      "choices": ["Top number", "Bottom number", "Answer", "Whole number"],
       "correctIndex": 0,
-      "hint": "It is written on top of the fraction."
-    },
-    {
-      "prompt": "What does the denominator represent?",
-      "choices": ["Number of parts you have", "Total equal parts", "Final answer", "Decimal value"],
-      "correctIndex": 1,
-      "hint": "It tells how many pieces the whole is split into."
-    },
-    {
-      "prompt": "Which fraction is larger?",
-      "choices": ["1/4", "1/2", "1/8", "1/10"],
-      "correctIndex": 1,
-      "hint": "Think about which is closer to a whole."
+      "hint": "It is on top."
     },
     {
       "prompt": "What is 1/2 + 1/4?",
-      "choices": ["1/6", "2/6", "3/4", "1/8"],
-      "correctIndex": 2,
-      "hint": "Convert 1/2 into 2/4 first."
-    },
-    {
-      "prompt": "Which is equal to 1/2?",
-      "choices": ["2/4", "3/4", "1/4", "5/4"],
+      "choices": ["3/4", "1/6", "2/6", "1/8"],
       "correctIndex": 0,
-      "hint": "Multiply numerator and denominator by 2."
+      "hint": "Convert to common denominator."
     }
   ]
 }
