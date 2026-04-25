@@ -7,7 +7,7 @@ import confetti from 'canvas-confetti';
 
 let appContainer: HTMLElement | null = null;
 let currentNickname: string = '';
-let currentLessonData: { title: string; questions: { prompt: string; choices: string[]; hint: string }[] } | null = null;
+let currentLessonData: { title: string; questions: { prompt: string; choices: string[]; hint: string; correctIndex: number }[] } | null = null;
 
 const XP_THRESHOLDS = [0, 250, 450, 700, 1000, 1500];
 const LEVEL_TITLES = ['Newcomer', 'Learner', 'Scholar', 'Ace', 'Master', 'Champion'];
@@ -59,8 +59,6 @@ function renderSetupScreen(): string {
 
 function renderDashboard(profile: StudentProfile): string {
   const xpProgress = getXPProgress(profile.totalXP);
-  const mathXP = profile.mathXP || 0;
-  const elaXP = profile.elaXP || 0;
   
   const currentLvl = profile.currentLevel;
   const currentThresh = currentLvl > 1 ? XP_THRESHOLDS[currentLvl - 1] : 0;
@@ -92,24 +90,48 @@ function renderDashboard(profile: StudentProfile): string {
       </div>
       
       <div class="subject-cards">
-        <div class="subject-card math" data-subject="math">
+        <div class="subject-card math" data-subject="math" data-difficulty="easy">
           <div class="subject-icon">🔢</div>
-          <h2>Math</h2>
-          <p class="subject-xp">${mathXP} XP</p>
-          <button class="btn-subject" data-subject="math">Start Lesson</button>
+          <h2>Math - Easy</h2>
+          <p class="subject-xp">Grade 6</p>
+          <button class="btn-subject" data-subject="math" data-difficulty="easy">Start Lesson</button>
         </div>
-        <div class="subject-card ela" data-subject="ela">
-          <div class="subject-icon">📚</div>
-          <h2>ELA</h2>
-          <p class="subject-xp">${elaXP} XP</p>
-          <button class="btn-subject" data-subject="ela">Start Lesson</button>
+        <div class="subject-card math" data-subject="math" data-difficulty="medium">
+          <div class="subject-icon">📐</div>
+          <h2>Math - Medium</h2>
+          <p class="subject-xp">Grade 7</p>
+          <button class="btn-subject" data-subject="math" data-difficulty="medium">Start Lesson</button>
+        </div>
+        <div class="subject-card math" data-subject="math" data-difficulty="hard">
+          <div class="subject-icon">📊</div>
+          <h2>Math - Hard</h2>
+          <p class="subject-xp">Grade 8</p>
+          <button class="btn-subject" data-subject="math" data-difficulty="hard">Start Lesson</button>
+        </div>
+        <div class="subject-card ela" data-subject="ela" data-difficulty="easy">
+          <div class="subject-icon">📖</div>
+          <h2>ELA - Easy</h2>
+          <p class="subject-xp">Grade 6</p>
+          <button class="btn-subject" data-subject="ela" data-difficulty="easy">Start Lesson</button>
+        </div>
+        <div class="subject-card ela" data-subject="ela" data-difficulty="medium">
+          <div class="subject-icon">📝</div>
+          <h2>ELA - Medium</h2>
+          <p class="subject-xp">Grade 7</p>
+          <button class="btn-subject" data-subject="ela" data-difficulty="medium">Start Lesson</button>
+        </div>
+        <div class="subject-card ela" data-subject="ela" data-difficulty="hard">
+          <div class="subject-icon">✍️</div>
+          <h2>ELA - Hard</h2>
+          <p class="subject-xp">Grade 8</p>
+          <button class="btn-subject" data-subject="ela" data-difficulty="hard">Start Lesson</button>
         </div>
       </div>
     </div>
   `;
 }
 
-function renderQuizScreen(lesson: { title: string; questions: { prompt: string; choices: string[]; hint: string }[] }): string {
+function renderQuizScreen(lesson: { title: string; questions: { prompt: string; choices: string[]; hint: string; correctIndex: number }[] }): string {
   const progress = getQuestionProgress();
   const question = lesson.questions[progress.current - 1];
   
@@ -174,7 +196,7 @@ function renderQuizResults(score: number, xpEarned: number): string {
   `;
 }
 
-function getCurrentLessonData(): { title: string; questions: { prompt: string; choices: string[]; hint: string }[] } {
+function getCurrentLessonData(): { title: string; questions: { prompt: string; choices: string[]; hint: string; correctIndex: number }[] } {
   return currentLessonData || { title: 'Lesson', questions: [] };
 }
 
@@ -230,8 +252,10 @@ function navigate(screen: string, data?: unknown): void {
       });
       break;
     case 'quiz':
-      currentLessonData = data as { title: string; questions: { prompt: string; choices: string[]; hint: string }[] };
-      appContainer!.innerHTML = renderQuizScreen(currentLessonData);
+      currentLessonData = data as { title: string; questions: { prompt: string; choices: string[]; hint: string; correctIndex: number }[] };
+      if (currentLessonData) {
+        appContainer!.innerHTML = renderQuizScreen(currentLessonData);
+      }
       break;
     case 'results':
       const result = data as { score: number; xpEarned: number };
@@ -290,52 +314,34 @@ function setupEventListeners(): void {
     
     if (target.dataset.subject) {
       const subject = target.dataset.subject as Subject;
-      const demoLesson = {
-        id: 1,
-        subject,
-        grade: 6,
-        language: 'en',
-        title: subject === 'math' ? 'Introduction to Fractions' : 'Finding the Main Idea',
-        content: subject === 'math' ? 'Learn about fractions!' : 'Learn about reading comprehension!',
-        isPreloaded: true,
-        createdAt: new Date().toISOString(),
-        questions: [
-          {
-            prompt: subject === 'math' ? 'What is 1/2 + 1/4?' : 'What is the main idea of this passage?',
-            choices: subject === 'math' ? ['1/6', '3/4', '2/6', '1/3'] : ['The weather', 'The adventure', 'Friendship', 'The ending'],
-            correctIndex: 1,
-            hint: subject === 'math' ? 'Find a common denominator first.' : 'Look for the central message.'
-          },
-          {
-            prompt: subject === 'math' ? 'What is 3/4 + 1/4?' : 'Which detail supports the main idea?',
-            choices: subject === 'math' ? ['1', '4/4', '2/4', '1/2'] : ['The weather changed', 'They learned a lesson', 'It was raining', 'Everyone cheered'],
-            correctIndex: 1,
-            hint: subject === 'math' ? 'Add the numerators.' : 'Find the detail that explains the main idea.'
-          },
-          {
-            prompt: subject === 'math' ? 'What is 1 - 1/3?' : 'What is a summmary of the passage?',
-            choices: subject === 'math' ? ['2/3', '1/3', '1/9', '0'] : ['A story about animals', 'A story about friends', 'A story about food', 'A story about travel'],
-            correctIndex: 0,
-            hint: subject === 'math' ? 'Subtract the numerators.' : 'Combine all key points.'
-          },
-          {
-            prompt: subject === 'math' ? 'What is 2/3 × 3?' : 'The author most likely wrote this to:',
-            choices: subject === 'math' ? ['6', '2', '6/3', '1'] : ['Entertain', 'Complain', 'Advertise', 'Argue'],
-            correctIndex: 0,
-            hint: subject === 'math' ? 'Multiply the numerator by 3.' : 'Think about the purpose.'
-          },
-          {
-            prompt: subject === 'math' ? 'Which is equivalent to 1/2?' : 'What type of passage is this?',
-            choices: subject === 'math' ? ['2/4', '1/4', '3/4', '1/3'] : ['Fiction', 'Non-fiction', 'Poetry', 'Drama'],
-            correctIndex: 0,
-            hint: subject === 'math' ? 'Multiply top and bottom by 2.' : 'Look at the structure.'
-          }
-        ]
+      const difficulty = target.dataset.difficulty as string;
+      
+      const lessonFiles = {
+        math: {
+          easy: ['lessons/math-decimals-grade6.json', 'lessons/math-fractions-grade7.json'],
+          medium: ['lessons/math-fractions-grade7.json', 'lessons/math-geometry-grade7.json'],
+          hard: ['lessons/math-prealgebra-grade8.json', 'lessons/math-word-problems-grade8.json']
+        },
+        ela: {
+          easy: ['lessons/ela-main-idea-grade6.json', 'lessons/ela-context-clues-grade6.json'],
+          medium: ['lessons/ela-summarizing-grade7.json', 'lessons/ela-figurative-language-grade8.json'],
+          hard: ['lessons/ela-figurative-language-grade8.json', 'lessons/ela-essay-structure-grade8.json']
+        }
       };
       
-      startQuiz(demoLesson as any, { hintsRemaining: 3 }).then(() => {
-        navigate('quiz', demoLesson);
-      });
+      const files = (lessonFiles[subject] as Record<string, string[]>)[difficulty] || (lessonFiles[subject] as Record<string, string[]>)['easy'];
+      const randomFile = files[Math.floor(Math.random() * files.length)];
+      
+      fetch(randomFile)
+        .then(res => res.json())
+        .then(lessonData => {
+          startQuiz(lessonData as any, { hintsRemaining: 3 }).then(() => {
+            navigate('quiz', lessonData);
+          });
+        })
+        .catch(() => {
+          alert('Failed to load lesson. Please try again.');
+        });
       return;
     }
     
@@ -346,7 +352,10 @@ function setupEventListeners(): void {
       const buttons = appContainer?.querySelectorAll('.choice-btn');
       const allButtons = Array.from(buttons || []);
       
-      const isCorrect = index === 1;
+      const lessonData = getCurrentLessonData();
+      const progress = getQuestionProgress();
+      const question = lessonData.questions[progress.current - 1];
+      const isCorrect = index === question.correctIndex;
       
       if (isCorrect) {
         allButtons.forEach((btn) => {
@@ -373,12 +382,34 @@ function setupEventListeners(): void {
           }
         }, 500);
       } else {
-        showAttemptMessage('Incorrect. Try again!');
+        showAttemptMessage('Incorrect!');
         
-        allButtons.forEach((btn) => {
+        allButtons.forEach((btn, i) => {
           btn.classList.remove('selected');
-          (btn as HTMLButtonElement).disabled = false;
+          (btn as HTMLButtonElement).disabled = true;
+          
+          if (i === question.correctIndex) {
+            btn.classList.add('correct');
+          } else if (i === index) {
+            btn.classList.add('incorrect');
+          }
         });
+        
+        setTimeout(() => {
+          const progress = getQuestionProgress();
+          const isLastQuestion = progress.current === progress.total;
+          
+          const nextBtn = document.getElementById('next-btn');
+          if (nextBtn) {
+            if (isLastQuestion) {
+              nextBtn.textContent = 'Finish Quiz';
+              nextBtn.style.background = '#22c55e';
+            } else {
+              nextBtn.textContent = 'Next →';
+              nextBtn.style.background = '';
+            }
+          }
+        }, 1000);
       }
       return;
     }
