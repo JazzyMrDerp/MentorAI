@@ -1,0 +1,39 @@
+{
+  "subject": "ela",
+  "grade": 6,
+  "language": "en",
+  "title": "Using Context Clues",
+  "content": "Context clues are words or sentences around an unfamiliar word that help you understand its meaning. Clues may appear as definitions, examples, synonyms, antonyms, or explanations nearby.",
+  "questions": [
+    {
+      "prompt": "What are context clues?",
+      "choices": ["Words that help explain meaning", "Only punctuation marks", "Random letters", "Page numbers"],
+      "correctIndex": 0,
+      "hint": "Look around the unknown word."
+    },
+    {
+      "prompt": "In the sentence 'The room was frigid, or very cold,' what does frigid mean?",
+      "choices": ["Hot", "Cold", "Bright", "Loud"],
+      "correctIndex": 1,
+      "hint": "The sentence gives the definition."
+    },
+    {
+      "prompt": "Which clue type uses a word with similar meaning?",
+      "choices": ["Synonym", "Antonym", "Number", "Title"],
+      "correctIndex": 0,
+      "hint": "Similar meaning means synonym."
+    },
+    {
+      "prompt": "In 'Unlike his noisy brother, Omar was quiet,' what does quiet contrast with?",
+      "choices": ["Noisy", "Brother", "Omar", "Unlike"],
+      "correctIndex": 0,
+      "hint": "Look for the opposite idea."
+    },
+    {
+      "prompt": "What should you do when you find an unfamiliar word?",
+      "choices": ["Skip the whole passage", "Use nearby clues", "Always guess randomly", "Stop reading forever"],
+      "correctIndex": 1,
+      "hint": "The surrounding sentence can help."
+    }
+  ]
+}
