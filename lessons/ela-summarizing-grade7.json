@@ -1,0 +1,39 @@
+{
+  "subject": "ela",
+  "grade": 7,
+  "language": "en",
+  "title": "Summarizing a Passage",
+  "content": "A summary gives the most important ideas in a shorter form. It should include the main idea and key details, but not every small example. A strong summary is clear, neutral, and written in your own words.",
+  "questions": [
+    {
+      "prompt": "What should a summary include?",
+      "choices": ["Only opinions", "Every tiny detail", "Main idea and key details", "Unrelated facts"],
+      "correctIndex": 2,
+      "hint": "A summary keeps the important parts."
+    },
+    {
+      "prompt": "A summary should usually be:",
+      "choices": ["Longer than the original", "Shorter than the original", "Only one letter", "Full of random details"],
+      "correctIndex": 1,
+      "hint": "Summaries are shortened versions."
+    },
+    {
+      "prompt": "Which should NOT be in a summary?",
+      "choices": ["Main idea", "Key details", "Personal opinion", "Important events"],
+      "correctIndex": 2,
+      "hint": "A summary should stay neutral."
+    },
+    {
+      "prompt": "What does it mean to write a summary in your own words?",
+      "choices": ["Copy every sentence", "Use your own explanation", "Change only the title", "Remove the main idea"],
+      "correctIndex": 1,
+      "hint": "Do not just copy the passage."
+    },
+    {
+      "prompt": "Which is the best first step before summarizing?",
+      "choices": ["Read and understand the passage", "Pick random sentences", "Skip the ending", "Only look at pictures"],
+      "correctIndex": 0,
+      "hint": "You need to understand before summarizing."
+    }
+  ]
+}
