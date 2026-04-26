@@ -81,6 +81,20 @@ container.innerHTML = `
     </div>
   `;
   
+  // Wire up Back button
+  const backBtn = container.querySelector('[data-action="back"]');
+  backBtn?.addEventListener('click', () => options.onGoBack());
+
+  // Wire up Start Lesson buttons
+  options.lessons.forEach(lesson => {
+    const btn = container.querySelector(`[data-action="start-lesson-${lesson.id}"]`);
+    btn?.addEventListener('click', () => options.onSelectLesson(lesson.id as number));
+  });
+
+  // Wire up Boss button
+  const bossBtn = container.querySelector(`[data-action="boss-${options.subject}"]`);
+  bossBtn?.addEventListener('click', () => options.onStartBoss(options.subject));
+
   return container;
 }
 

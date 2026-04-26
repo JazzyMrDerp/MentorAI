@@ -1640,3 +1640,133 @@ button { font-family: var(--font-body); }
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(108,99,255,0.3);
 }
+
+/* Boss Battle Screen */
+.boss-content {
+  padding: 24px;
+}
+
+.boss-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.boss-avatar {
+  font-size: 48px;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  border-radius: 50%;
+  animation: boss-pulse 2s ease-in-out infinite;
+}
+
+@keyframes boss-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.boss-info h2 {
+  font-size: 24px;
+  color: var(--red);
+  margin-bottom: 4px;
+}
+
+.boss-info p {
+  color: var(--text-2);
+}
+
+.boss-health {
+  width: 100%;
+  height: 12px;
+  background: #1a1a1a;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-top: 4px;
+  border: 2px solid #333;
+}
+
+.boss-health-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+  border-radius: var(--radius-full);
+  transition: width 0.5s ease;
+}
+
+.boss-health-label {
+  text-align: center;
+  color: var(--red);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.boss-timer {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-1);
+  background: var(--bg-2);
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+}
+
+.boss-timer.timer-danger {
+  color: var(--red);
+  background: rgba(239, 68, 68, 0.2);
+  animation: timer-pulse 1s ease-in-out infinite;
+}
+
+@keyframes timer-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Boss Summary */
+.summary-content {
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.summary-icon {
+  font-size: 72px;
+  margin-bottom: 16px;
+}
+
+.summary-content h1 {
+  font-size: 32px;
+  color: var(--primary);
+  margin-bottom: 16px;
+}
+
+.summary-score, .summary-xp, .summary-hints {
+  font-size: 18px;
+  color: var(--text-2);
+  margin-bottom: 8px;
+}
+
+.summary-xp {
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.btn-dashboard {
+  margin-top: 32px;
+  padding: 16px 32px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--primary);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-dashboard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(108,99,255,0.3);
+}

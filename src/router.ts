@@ -1,6 +1,18 @@
 import { getCopy } from './copy.ts';
 import { renderDashboard } from './screens/dashboard.ts';
 import { renderLessonScreen, type TutorMessage } from './screens/lesson.ts';
+import { 
+  renderQuizScreen, 
+  startQuiz, 
+  renderQuizSummary,
+  selectAnswer,
+  useHint,
+  goToNextQuestion,
+  submitQuiz,
+  calculateScore,
+  calculateXP,
+  getQuizProgress
+} from './screens/quiz.ts';
 import type { AppState, Grade, Language, Lesson, Subject } from './types.ts';
 
 export interface CreateProfileInput {
@@ -28,7 +40,7 @@ export interface MentorRouter {
   navigate: (page: string) => Promise<void>;
 }
 
-type RouteName = 'dashboard' | 'lesson' | 'progress' | 'settings' | 'subject';
+type RouteName = 'dashboard' | 'lesson' | 'progress' | 'settings' | 'subject' | 'quiz';
 
 function uniqueMessageId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -163,9 +175,8 @@ export function createRouter(options: RouterOptions): MentorRouter {
       },
     };
 
-    currentRoute = 'lesson';
-    tutorThinking = false;
-    tutorMessages = initialTutorMessages(nextLesson, snapshot.state.isOnline);
+    await startQuiz(nextLesson, { hintsRemaining: 3 });
+    currentRoute = 'quiz';
     await render();
   }
 
@@ -176,6 +187,15 @@ export function createRouter(options: RouterOptions): MentorRouter {
 
   async function openSettings(): Promise<void> {
     currentRoute = 'settings';
+    await render();
+  }
+
+  async function openQuiz(): Promise<void> {
+    if (!snapshot.state.currentLesson) {
+      return;
+    }
+    await startQuiz(snapshot.state.currentLesson, { hintsRemaining: 3 });
+    currentRoute = 'quiz';
     await render();
   }
 
@@ -287,10 +307,44 @@ export function createRouter(options: RouterOptions): MentorRouter {
           void returnToDashboard();
         },
         onTakeQuiz: () => {
-          console.log('Quiz not yet implemented');
+          void openQuiz();
         },
         onSendMessage: async (prompt) => {
           await sendTutorMessage(prompt);
+        },
+      });
+    }
+
+    if (currentRoute === 'quiz') {
+      return renderQuizScreen({
+        onSelectAnswer: (index) => {
+          selectAnswer(index);
+        },
+        onUseHint: () => {
+          useHint();
+        },
+        onNext: () => {
+          goToNextQuestion();
+        },
+        onFinish: async () => {
+          const quizState = getQuizProgress();
+          if (!quizState) return;
+          const score = calculateScore();
+          const xpEarned = calculateXP(score);
+          const nickname = snapshot.state.profile?.nickname || '';
+          await submitQuiz(nickname, quizState.lesson.title, quizState.lesson.subject);
+          const summary = renderQuizSummary(
+            score,
+            xpEarned,
+            quizState.hintsUsed,
+            quizState.lesson.questions.length,
+            () => { void returnToDashboard(); }
+          );
+          contentHost.innerHTML = '';
+          contentHost.appendChild(summary);
+        },
+        onGoBack: () => {
+          void returnToDashboard();
         },
       });
     }

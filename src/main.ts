@@ -9,14 +9,18 @@ import { renderSubjectPage, renderProgressPlaceholder, renderSettingsPlaceholder
 import { renderSidebar } from './components/sidebar';
 import type { StudentProfile, Lesson, Grade, Language, Subject } from './types';
 import { renderLessonScreen } from './screens/lesson';  
+import { startQuiz, renderQuizScreen, renderQuizSummary, selectAnswer, useHint, goToNextQuestion, submitQuiz, getQuizProgress, calculateScore, calculateXP } from './screens/quiz';
+import { startBossBattle, renderBossScreen, renderBossSummary, selectBossAnswer, useBossHint, goToNextBossQuestion, calculateBossScore, calculateBossXP, isBossDefeated } from './screens/boss';
 
 // ── App State ─────────────────────────────────────────────────────────────────
 
-type Page = 'dashboard' | 'onboarding' | 'lesson' | 'progress' | 'settings' | 'math' | 'ela';
+type Page = 'dashboard' | 'onboarding' | 'lesson' | 'quiz' | 'boss' | 'progress' | 'settings' | 'math' | 'ela';
 
 let currentPage: Page = 'onboarding';
 let currentSubject: Subject = 'math';
 let currentLessonId: number | null = null;
+let currentQuiz: ReturnType<typeof getQuizProgress> = null;
+let currentBoss: ReturnType<typeof startBossBattle> | null = null;
 let app: HTMLElement;
 let profile: StudentProfile | null = null;
 let lessons: Lesson[] = [];
@@ -38,7 +42,7 @@ async function navigateTo(page: string): Promise<void> {
 
 // ── Render ────────────────────────────────────────────────────────────────────
 
-function render(): void {
+async function render(): Promise<void> {
   app.innerHTML = '';
   const isOnline = navigator.onLine;
 
@@ -66,12 +70,17 @@ function render(): void {
       lessons: lessons.filter(l => l.subject === currentSubject),
       profile,
       isOnline,
-      onSelectLesson: (lessonId) => {
+onSelectLesson: (lessonId) => {
         currentLessonId = lessonId;   // ← save the selected lesson id
-        currentPage = 'lesson';        // ← navigate to lesson page
+        currentPage = 'quiz';          // ← navigate directly to quiz
         render();
-},
-      onStartBoss:    (_subject)  => { void _subject; },
+      },
+      onStartBoss: (subject) => {
+        currentSubject = subject;
+        currentPage = 'boss';
+        currentBoss = null;
+        render();
+      },
       onGoBack: () => navigateTo('dashboard'),
     });
   } else if (currentPage === 'lesson' && currentLessonId) {
@@ -89,7 +98,8 @@ function render(): void {
           render();
         },
         onTakeQuiz: () => {
-          console.log('Take Quiz clicked for lesson:', currentLessonId);
+          currentPage = 'quiz';
+          render();
         },
         onSendMessage: async (prompt: string) => {
           console.log('Tutor message:', prompt);
@@ -105,6 +115,123 @@ function render(): void {
     mainContent = renderProgressPlaceholder();
   } else if (currentPage === 'settings') {
     mainContent = renderSettingsPlaceholder();
+  } else if (currentPage === 'boss' && profile) {
+    const subjectLessons = lessons.filter(l => l.subject === currentSubject);
+    if (subjectLessons.length > 0) {
+      const bossState = currentBoss || startBossBattle(subjectLessons, currentSubject);
+      if (!currentBoss) currentBoss = bossState;
+      
+      const handleBossNext = () => {
+        const defeated = isBossDefeated();
+        // If boss is defeated, show victory screen
+        if (defeated) {
+          const bossScore = calculateBossScore();
+          const answered = bossState.answers.length;
+          const bossXP = calculateBossXP(bossScore, answered);
+          app.innerHTML = '';
+          app.appendChild(
+            renderBossSummary(bossScore, bossXP, bossState.hintsUsed, answered, () => {
+              currentPage = 'dashboard';
+              currentBoss = null;
+              render();
+            })
+          );
+          return;
+        }
+        // Otherwise, move to next question
+        const moved = goToNextBossQuestion();
+        if (moved) {
+          render();
+        } else {
+          // Time ran out or no more questions
+          const bossScore = calculateBossScore();
+          const answered = bossState.answers.length;
+          const bossXP = calculateBossXP(bossScore, answered);
+          app.innerHTML = '';
+          app.appendChild(
+            renderBossSummary(bossScore, bossXP, bossState.hintsUsed, answered, () => {
+              currentPage = 'dashboard';
+              currentBoss = null;
+              render();
+            })
+          );
+        }
+      };
+      
+      mainContent = renderBossScreen({
+        subject: currentSubject,
+        onSelectAnswer: (index) => { selectBossAnswer(index); },
+        onUseHint: () => { useBossHint(); },
+        onNext: handleBossNext,
+        onFinish: () => { handleBossNext(); },
+        onTimeUp: () => {
+          // Time's up - boss wins!
+          app.innerHTML = '';
+          app.appendChild(
+            renderBossSummary(0, 0, bossState.hintsUsed, bossState.answers.length, () => {
+              currentPage = 'dashboard';
+              currentBoss = null;
+              render();
+            })
+          );
+        },
+        onGoBack: () => {
+          currentPage = 'dashboard';
+          currentBoss = null;
+          render();
+        },
+      });
+    } else {
+      mainContent = document.createElement('div');
+      mainContent.textContent = 'No lessons available for boss battle';
+    }
+  } else if (currentPage === 'quiz' && currentLessonId && profile) {
+    const selectedLesson = lessons.find(l => l.id === currentLessonId);
+    if (selectedLesson && profile) {
+      if (!currentQuiz) {
+        currentQuiz = await startQuiz(selectedLesson, { hintsRemaining: 3 });
+      }
+      
+      const handleNext = () => {
+        const moved = goToNextQuestion();
+        if (moved) {
+          currentQuiz = getQuizProgress();
+          render();
+        } else {
+          const quizState = getQuizProgress();
+          if (quizState) {
+            const score = calculateScore();
+            const xpEarned = calculateXP(score);
+            submitQuiz(profile!.nickname, selectedLesson.title, currentSubject);
+            currentQuiz = null;
+            app.innerHTML = '';
+            app.appendChild(
+              renderQuizSummary(score, xpEarned, quizState.hintsUsed, selectedLesson.questions.length, () => {
+                currentPage = currentSubject as Page;
+                currentLessonId = null;
+                render();
+              })
+            );
+            return;
+          }
+        }
+      };
+      
+      mainContent = renderQuizScreen({
+        onSelectAnswer: (index) => { selectAnswer(index); },
+        onUseHint: () => { useHint(); },
+        onNext: handleNext,
+        onFinish: () => { handleNext(); },
+        onGoBack: () => {
+          currentPage = 'lesson';
+          currentQuiz = null;
+          render();
+        },
+      });
+    } else {
+      mainContent = document.createElement('div');
+      mainContent.textContent = 'No lesson selected';
+    }
   } else {
     mainContent = renderDashboard({
       profile,
