@@ -169,6 +169,10 @@ export function renderQuizScreen(options: QuizRenderOptions): HTMLElement {
   const progress = ((questionIndex + 1) / totalQuestions) * 100;
   const currentHint = getHint();
 
+  if (!question) {
+    return document.createElement('div');
+  }
+
   container.innerHTML = `
     <div class="main-content">
       <div class="quiz-content">
@@ -222,14 +226,30 @@ export function renderQuizScreen(options: QuizRenderOptions): HTMLElement {
     btn.addEventListener('click', (e) => {
       const target = e.currentTarget as HTMLButtonElement;
       const choiceIdx = parseInt(target.dataset.choice || '0');
-      options.onSelectAnswer(choiceIdx);
       
-      choiceBtns.forEach(b => b.classList.remove('selected'));
-      target.classList.add('selected');
+      // Check if answer is correct and show feedback
+      const isCorrect = choiceIdx === question.correctIndex;
+      choiceBtns.forEach(b => b.classList.remove('selected', 'correct', 'incorrect'));
+      
+      if (isCorrect) {
+        target.classList.add('correct');
+      } else {
+        target.classList.add('wrong');
+        // Also highlight the correct answer
+        const correctBtn = container.querySelector(`[data-choice="${question.correctIndex}"]`);
+        correctBtn?.classList.add('correct');
+      }
+      
+      options.onSelectAnswer(choiceIdx);
       
       if (nextBtn) {
         nextBtn.disabled = false;
       }
+      
+      // Disable all choice buttons after selection
+      choiceBtns.forEach((b: Element) => {
+        (b as HTMLButtonElement).disabled = true;
+      });
     });
   });
 
