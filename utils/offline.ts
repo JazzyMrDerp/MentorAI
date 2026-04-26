@@ -4,14 +4,16 @@ import {
   clearSyncItem,
   incrementSyncRetry,
   saveLesson,
+  replaceQuestionInLesson,
   updateProfile,
 } from '../src/db';
 import {
   generateLesson,
+  replaceQuestion,
   generateProgressReport,
   getWritingFeedback,
 } from '../src/gemini';
-import type { SyncQueueItem, Subject, Grade } from '../src/types';
+import type { SyncQueueItem, Subject, Grade, Question } from '../src/types';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -148,6 +150,20 @@ export async function flushSyncQueue(): Promise<void> {
 async function processSyncItem(item: SyncQueueItem): Promise<boolean> {
   try {
     switch (item.type) {
+
+      case 'replace_question': {
+        const { lessonId, questionIndex, subject, grade, topic, difficulty } = item.payload as {
+          lessonId:      number;
+          questionIndex: number;
+          subject:      Subject;
+          grade:        Grade;
+          topic:       string;
+          difficulty:   1 | 2 | 3;
+        };
+        const newQuestion = await replaceQuestion(subject, grade, topic, difficulty);
+        await replaceQuestionInLesson(lessonId, questionIndex, newQuestion);
+        return true;
+      }
 
       case 'generate_lesson': {
         const { subject, grade, topic } = item.payload as {
