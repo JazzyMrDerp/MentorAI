@@ -220,14 +220,6 @@ export async function updateProfile(
 ): Promise<void> {
   const profile = await getProfile(nickname);
   if (!profile) return;
-<<<<<<< HEAD
-  
-  const currentXP = profile.totalXP;
-  const newXP = updates.totalXP ?? currentXP;
-  const newLevel = calculateLevel(newXP);
-  
-  await db.studentProfile.update(profile.id as number, { ...updates, currentLevel: newLevel });
-=======
 
   const newXP = updates.totalXP ?? profile.totalXP;
   const newLevel = calculateLevel(newXP);
@@ -236,9 +228,7 @@ export async function updateProfile(
     ...updates,
     currentLevel: newLevel,
   });
->>>>>>> feat/ai-layer
 }
-
 export function calculateLevel(xp: number): number {
   if (xp >= 1000) return 5;
   if (xp >= 700) return 4;
