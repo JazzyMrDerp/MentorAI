@@ -11,7 +11,7 @@ export type Subject = 'math' | 'ela';
 export type Grade = 6 | 7 | 8;
 
 /** Supported display languages */
-export type Language = 'en' | 'es';
+export type Language = 'en';
 
 // ── Quiz ──────────────────────────────────────────────────────────────────────
 
@@ -21,6 +21,9 @@ export interface Question {
   choices:      string[];  // Always exactly 4 answer options
   correctIndex: number;    // Index (0–3) of the correct choice in choices[]
   hint:         string;    // One-sentence hint shown when student uses a hint token
+  answered:     boolean;   // has the student seen this question?
+  correct:      boolean;   // did they get it right?
+  difficulty:   1 | 2 | 3; // used by Gemini to generate harder replacements
 }
 
 // ── Lesson ────────────────────────────────────────────────────────────────────
@@ -31,7 +34,7 @@ export interface Question {
  * Stored in IndexedDB so it's available completely offline.
  */
 export interface Lesson {
-  id:          number;     // Auto-assigned by Dexie — never set this manually
+  id?:          number;     // Auto-assigned by Dexie — never set this manually
   subject:     Subject;
   grade:       Grade;
   language:    Language;
@@ -50,7 +53,7 @@ export interface Lesson {
  * Synced to the teacher dashboard when the device reconnects.
  */
 export interface Progress {
-  id:          number;    // Auto-assigned by Dexie
+  id?:          number;    // Auto-assigned by Dexie
   nickname:    string;    // Student's chosen nickname (no real names — privacy)
   lessonId:    number;    // References Lesson.id
   lessonTitle: string;    // Stored directly in case the lesson gets deleted later
@@ -70,7 +73,7 @@ export interface Progress {
  * Updated by Person 3 after every quiz via updateProfile() in db.ts.
  */
 export interface StudentProfile {
-  id:           number;   // Auto-assigned by Dexie
+  id?:           number;   // Auto-assigned by Dexie
   nickname:     string;   // Chosen on first launch e.g. "StarCoder99"
   grade:        Grade;
   language:     Language; // Controls lesson language and UI language
@@ -80,6 +83,8 @@ export interface StudentProfile {
   lastActive:   string;   // ISO date string — used to calculate/reset streak
   mathXP:       number;   // XP earned specifically in math lessons
   elaXP:        number;   // XP earned specifically in ELA lessons
+  lastProgressReport?: string;  // the ? means it can be undefined until first sync
+  lastReportDate?:     string;
 }
 
 // ── Sync Queue ────────────────────────────────────────────────────────────────
@@ -90,7 +95,7 @@ export interface StudentProfile {
  * once the device reconnects to WiFi.
  */
 export interface SyncQueueItem {
-  id:        number;                    // Auto-assigned by Dexie
+  id?:        number;                    // Auto-assigned by Dexie
   type:      SyncType;                  // Determines which Gemini function to call
   payload:   Record<string, unknown>;   // Data passed to the Gemini function
   timestamp: number;                    // Date.now() — older items are processed first

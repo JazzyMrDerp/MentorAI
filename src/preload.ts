@@ -1,53 +1,71 @@
 // src/preload.ts
-// Runs once on first app launch when online.
-// Pre-generates lessons via Gemini and stores them offline for later use.
-
-import { hasPreloadedLessons, bulkSaveLessons } from './db';
+import { bulkSaveLessons } from './db';
 import { generateLesson } from './gemini';
+import { db } from './db';
 import type { Lesson, Subject, Grade, Language } from './types';
 
-// Topics to generate on first launch — covers both languages
-const LESSON_TOPICS: { subject: Subject; grade: Grade; topic: string; language: Language }[] = [
-  { subject: 'math', grade: 6, topic: 'adding and subtracting fractions',    language: 'en' },
-  { subject: 'math', grade: 6, topic: 'multiplicación de fracciones',        language: 'es' },
-  { subject: 'math', grade: 7, topic: 'solving one-step equations',          language: 'en' },
-  { subject: 'math', grade: 7, topic: 'ecuaciones de un paso',               language: 'es' },
-  { subject: 'math', grade: 8, topic: 'slope and linear equations',          language: 'en' },
-  { subject: 'ela',  grade: 6, topic: 'identifying main idea and details',   language: 'en' },
-  { subject: 'ela',  grade: 6, topic: 'idea principal y detalles',           language: 'es' },
-  { subject: 'ela',  grade: 7, topic: 'figurative language and metaphors',   language: 'en' },
-  { subject: 'ela',  grade: 7, topic: 'lenguaje figurativo y metáforas',     language: 'es' },
-  { subject: 'ela',  grade: 8, topic: 'analyzing argumentative writing',     language: 'en' },
+const BUNDLED_LESSON_COUNT = 10;
+const CALL_DELAY_MS = 600;
+
+const GEMINI_TOPICS: { subject: Subject; grade: Grade; topic: string; language: Language }[] = [
+  { subject: 'math', grade: 6, topic: 'multiplying and dividing fractions', language: 'en' },
+  { subject: 'math', grade: 7, topic: 'solving two-step equations',         language: 'en' },
+  { subject: 'math', grade: 7, topic: 'inequalities and number lines',      language: 'en' },
+  { subject: 'math', grade: 8, topic: 'the Pythagorean theorem',            language: 'en' },
+  { subject: 'math', grade: 8, topic: 'systems of equations',               language: 'en' },
+  { subject: 'ela',  grade: 6, topic: 'comparing and contrasting texts',    language: 'en' },
+  { subject: 'ela',  grade: 6, topic: 'context clues and vocabulary',       language: 'en' },
+  { subject: 'ela',  grade: 7, topic: 'point of view and author purpose',   language: 'en' },
+  { subject: 'ela',  grade: 7, topic: 'text structure and organization',    language: 'en' },
+  { subject: 'ela',  grade: 8, topic: 'evaluating evidence in arguments',   language: 'en' },
 ];
 
-/**
- * Called once from main.ts on first launch when online.
- * Generates all lessons via Gemini and saves them to IndexedDB.
- * Skips silently if lessons already exist.
- */
 export async function preloadLessons(
   onProgress?: (current: number, total: number) => void
 ): Promise<void> {
-  if (await hasPreloadedLessons()) return;
-  if (!navigator.onLine) return;
+  const existingCount = await db.lessons.count();
+  if (existingCount > BUNDLED_LESSON_COUNT) {
+    console.log('[Preload] Gemini lessons already exist — skipping.');
+    return;
+  }
 
-  const total = LESSON_TOPICS.length;
-  const lessons: Omit<Lesson, 'id'>[] = [];
+  if (!navigator.onLine) {
+    console.log('[Preload] Offline — skipping Gemini preload. Bundled lessons available.');
+    return;
+  }
+
+  const total = GEMINI_TOPICS.length;
+  const generated: Omit<Lesson, 'id'>[] = [];
+
+  console.log(`[Preload] Generating ${total} Gemini lessons...`);
 
   for (let i = 0; i < total; i++) {
-    const { subject, grade, topic, language } = LESSON_TOPICS[i];
+    const { subject, grade, topic, language } = GEMINI_TOPICS[i];
+
+    if (!navigator.onLine) {
+      console.warn('[Preload] Lost connection mid-preload — saving partial results.');
+      break;
+    }
 
     try {
       const lesson = await generateLesson(subject, grade, topic, language);
-      lessons.push({ ...lesson, isPreloaded: true });
+      generated.push({ ...lesson, isPreloaded: true });
       onProgress?.(i + 1, total);
+      console.log(`[Preload] ✓ "${topic}"`);
     } catch (err) {
-      console.error(`Failed to preload "${topic}":`, err);
+      console.error(`[Preload] ✗ Failed "${topic}":`, err);
+      onProgress?.(i + 1, total);
     }
+
+    if (i < total - 1) await delay(CALL_DELAY_MS);
   }
 
-  if (lessons.length > 0) {
-    await bulkSaveLessons(lessons);
-    console.log(`[Preload] Saved ${lessons.length} lessons to local database.`);
+  if (generated.length > 0) {
+    await bulkSaveLessons(generated);
+    console.log(`[Preload] Saved ${generated.length}/${total} Gemini lessons to DB.`);
   }
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
