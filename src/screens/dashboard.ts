@@ -1,5 +1,5 @@
 import { gsap } from 'gsap';
-import { createIcons, icons } from 'lucide';
+import { icons } from 'lucide';
 
 import { getCopy } from '../copy.ts';
 import type { CreateProfileInput } from '../router.ts';
@@ -259,7 +259,6 @@ export function renderDashboardScreen(options: DashboardScreenOptions): {
 screen.querySelectorAll('[data-lucide]').forEach((el) => {
   const name = el.getAttribute('data-lucide') as string;
   if (icons[name as keyof typeof icons]) {
-    const iconNode = icons[name as keyof typeof icons];
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     el.replaceWith(svg);
   }

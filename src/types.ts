@@ -11,7 +11,7 @@ export type Subject = 'math' | 'ela';
 export type Grade = 6 | 7 | 8;
 
 /** Supported display languages */
-export type Language = 'en';
+export type Language = 'en' | 'es';
 
 // ── Quiz ──────────────────────────────────────────────────────────────────────
 

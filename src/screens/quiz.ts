@@ -130,9 +130,14 @@ export async function submitQuiz(
   const attempts = 1;
   const hintsUsed = currentQuiz.hintsUsed;
   
+  const lessonId = currentQuiz.lesson.id;
+  if (lessonId === undefined) {
+    throw new Error('Quiz lesson must have an id before saving progress.');
+  }
+
   const progress: Omit<Progress, 'id'> = {
     nickname,
-    lessonId: currentQuiz.lesson.id,
+    lessonId,
     lessonTitle,
     subject,
     score,

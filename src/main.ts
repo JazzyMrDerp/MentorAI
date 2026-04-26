@@ -1,8 +1,10 @@
 // src/main.ts
 import { initOfflineSync, registerSyncCallbacks } from '../utils/offline';
 import { preloadLessons } from './preload';
-import { seedLessons } from './db';
-import { getProfile } from './db';
+import { seedLessons, db, getProfile, createProfile, updateProfile } from './db';
+import { createRouter, type AppSnapshot } from './router';
+import type { StudentProfile } from './types';
+
 
 // ── Toast helper ──────────────────────────────────────────────────────────────
 
@@ -38,13 +40,55 @@ registerSyncCallbacks({
 
 // ── App boot ──────────────────────────────────────────────────────────────────
 
+async function buildSnapshot(profile: StudentProfile | undefined): Promise<AppSnapshot> {
+  const lessons = await db.lessons.toArray();
+  return {
+    lessons,
+    state: {
+      profile: profile ?? null,
+      currentLesson: null,
+      isOnline: navigator.onLine,
+    },
+  };
+}
+
 async function init(): Promise<void> {
   // 1. Seed bundled JSON lessons — ALWAYS runs, works offline
   await seedLessons();
 
   // 2. Check if a profile already exists
   const app = document.querySelector<HTMLDivElement>('#app')!;
-  const profile = await getProfile(''); // Person 2 will handle this properly
+  const existingProfile = await getProfile('');
+  let currentNickname = existingProfile?.nickname ?? '';
+
+  const router = createRouter({
+    root: app,
+    snapshot: await buildSnapshot(existingProfile),
+    onCreateProfile: async (input) => {
+      await createProfile({
+        ...input,
+        totalXP: 0,
+        currentLevel: 1,
+        streak: 0,
+        lastActive: new Date().toISOString(),
+        mathXP: 0,
+        elaXP: 0,
+      });
+
+      currentNickname = input.nickname;
+      const profile = await getProfile(input.nickname);
+      return buildSnapshot(profile);
+    },
+    onSetLanguage: async (language) => {
+      if (!currentNickname) {
+        return buildSnapshot(undefined);
+      }
+
+      await updateProfile(currentNickname, { language });
+      const profile = await getProfile(currentNickname);
+      return buildSnapshot(profile);
+    },
+  });
 
   // 3. Start sync engine (listens for WiFi reconnect)
   initOfflineSync();
@@ -54,8 +98,8 @@ async function init(): Promise<void> {
     console.log(`[Preload] ${current}/${total} Gemini lessons ready`);
   });
 
-  // 5. Hand off to Person 2's router
-  // renderRouter(app, profile);   ← Person 2 uncomments this
+  // 5. Hand off to the router
+  await router.mount();
   console.log('[MentorAI] Boot complete');
 }
 
