@@ -1,4 +1,5 @@
 import type { Lesson, StudentProfile } from '../types.ts';
+import { renderSidebar } from '../components/sidebar.ts';
 
 export interface TutorMessage {
   id: string;

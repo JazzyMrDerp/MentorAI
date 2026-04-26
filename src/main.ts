@@ -1,50 +1,42 @@
 // src/main.ts
 import './style.css';
 import { seedLessons, getLessons, createProfile } from './db';
+<<<<<<< HEAD
 import { renderOnboarding, state as onboardingState } from './screens/onboarding.ts';
 import { renderDashboard } from './screens/dashboard.ts';
 import { renderSubjectPage, renderProgressPlaceholder, renderSettingsPlaceholder } from './screens/subject.ts';
 import { renderLessonScreen } from './screens/lesson.ts';
 import { renderSidebar } from './components/sidebar.ts';
+=======
+import { initOfflineSync } from '../utils/offline';
+import { preloadLessons } from './preload';
+import { renderOnboarding, state as onboardingState } from './screens/onboarding';
+import { renderDashboard } from './screens/dashboard';
+import { renderSubjectPage, renderProgressPlaceholder, renderSettingsPlaceholder } from './screens/subject';
+import { renderSidebar } from './components/sidebar';
+>>>>>>> feat/ai-layer
 import type { StudentProfile, Lesson, Grade, Language, Subject } from './types';
 
-// ── Event Delegation ─────────────────────────────────────────────────────────
-// Handle all clicks via delegation on document
-document.addEventListener('click', (e) => {
-  const target = e.target as HTMLElement;
-  const button = target.closest('[data-page]') || target.closest('[data-action]') || target.closest('[data-route]');
-  if (!button) return;
-  
-  const page = (button as HTMLElement).dataset.page;
-  const route = (button as HTMLElement).dataset.route;
-  const _action = (button as HTMLElement).dataset.action;
-  
-  if (page || route) {
-    const targetPage = page || route || 'dashboard';
-    handleRouteClick(targetPage);
-  }
-  
-  if (_action) {
-    handleActionClick(_action);
-  }
-});
+// ── App State ─────────────────────────────────────────────────────────────────
 
-async function handleRouteClick(page: string): Promise<void> {
-  if (page === 'dashboard') {
-    currentPage = 'dashboard';
-    render();
-  } else if (page === 'progress') {
-    currentPage = 'progress';
-    render();
-  } else if (page === 'settings') {
-    currentPage = 'settings';
-    render();
-  } else if (page === 'math' || page === 'ela') {
+type Page = 'dashboard' | 'onboarding' | 'lesson' | 'progress' | 'settings' | 'math' | 'ela';
+
+let currentPage: Page = 'onboarding';
+let currentSubject: Subject = 'math';
+let app: HTMLElement;
+let profile: StudentProfile | null = null;
+let lessons: Lesson[] = [];
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+
+async function navigateTo(page: string): Promise<void> {
+  if (page === 'math' || page === 'ela') {
     currentSubject = page as Subject;
     if (profile) {
       lessons = await getLessons(profile.grade, page as Subject, 'en');
     }
     currentPage = page as Page;
+<<<<<<< HEAD
     render();
   } else if (page.startsWith('lesson-')) {
     const lessonId = parseInt(page.replace('lesson-', ''), 10);
@@ -119,60 +111,45 @@ async function init(): Promise<void> {
   profile = null;
   
   console.log('[MentorAI] Boot complete');
+=======
+  } else if (page === 'dashboard' || page === 'progress' || page === 'settings') {
+    currentPage = page as Page;
+  }
+>>>>>>> feat/ai-layer
   render();
-  setupOnboardingHandlers();
 }
+
+// ── Render ────────────────────────────────────────────────────────────────────
 
 function render(): void {
   app.innerHTML = '';
   const isOnline = navigator.onLine;
-  
+
   if (currentPage === 'onboarding') {
-    const onboarding = renderOnboarding();
-    app.appendChild(onboarding);
+    app.appendChild(renderOnboarding());
+    setupOnboardingHandlers();
     return;
   }
-  
-  // Dashboard with sidebar
+
   const layout = document.createElement('div');
   layout.className = 'app-layout';
-  
+
   const sidebar = renderSidebar({
     profile,
-    currentPage: currentPage,
+    currentPage,
     isOnline,
-    onNavigate: async (page) => {
-      if (page === 'dashboard') {
-        currentPage = 'dashboard';
-        render();
-      } else if (page === 'progress') {
-        currentPage = 'progress';
-        render();
-      } else if (page === 'settings') {
-        currentPage = 'settings';
-        render();
-      } else if (page === 'math' || page === 'ela') {
-        currentSubject = page as Subject;
-        if (profile) {
-          lessons = await getLessons(profile.grade, page as Subject, 'en');
-        }
-        currentPage = page as Page;
-        render();
-      } else {
-        currentPage = 'dashboard';
-        render();
-      }
-    }
+    onNavigate: (page) => { void navigateTo(page); }
   });
-  
+
   let mainContent: HTMLElement;
-  
-  if (currentPage === 'math') {
+
+  if (currentPage === 'math' || currentPage === 'ela') {
     mainContent = renderSubjectPage({
-      subject: 'math',
-      lessons: lessons.filter(l => l.subject === 'math'),
+      subject: currentSubject,
+      lessons: lessons.filter(l => l.subject === currentSubject),
       profile,
       isOnline,
+<<<<<<< HEAD
       onSelectLesson: (lessonId) => {
         currentLessonId = lessonId;
         currentPage = 'lesson';
@@ -204,6 +181,11 @@ function render(): void {
         currentPage = 'dashboard';
         render();
       }
+=======
+      onSelectLesson: (_lessonId) => { void _lessonId; },
+      onStartBoss:    (_subject)  => { void _subject; },
+      onGoBack: () => navigateTo('dashboard'),
+>>>>>>> feat/ai-layer
     });
   } else if (currentPage === 'lesson' && currentLessonId) {
     const selectedLesson = lessons.find(l => l.id === currentLessonId);
@@ -237,67 +219,65 @@ function render(): void {
   } else if (currentPage === 'settings') {
     mainContent = renderSettingsPlaceholder();
   } else {
-    // Default to dashboard
     mainContent = renderDashboard({
       profile,
       lessons,
       isOnline,
-      onOpenLesson: (subject) => {
-        currentSubject = subject;
-        document.title = 'MentorAI - ' + subject.toUpperCase();
-        currentPage = subject as Page;
-        render();
-      }
+      onOpenLesson: (subject) => { void navigateTo(subject); }
     });
   }
-  
+
   layout.appendChild(sidebar);
   layout.appendChild(mainContent);
   app.appendChild(layout);
 }
 
+// ── Onboarding ────────────────────────────────────────────────────────────────
+
 function setupOnboardingHandlers(): void {
-  // Wait for DOM to be ready
   setTimeout(() => {
-    const nicknameInput = document.getElementById('nickname-input');
     const startBtn = document.getElementById('start-btn');
-    
-    if (!startBtn || !nicknameInput) {
-      console.log('Elements not found, retrying...');
-      setTimeout(setupOnboardingHandlers, 200);
-      return;
-    }
-    
-    console.log('Setting up onboarding handlers');
-    
+    if (!startBtn) { setTimeout(setupOnboardingHandlers, 200); return; }
+
     startBtn.addEventListener('click', async () => {
-      console.log('Start button clicked');
-      
-      if (!onboardingState.nickname || !onboardingState.grade) {
-        console.log('Missing nickname or grade');
-        return;
-      }
-      
+      if (!onboardingState.nickname || !onboardingState.grade) return;
+
       const newProfile: Omit<StudentProfile, 'id'> = {
-        nickname: onboardingState.nickname,
-        grade: onboardingState.grade as Grade,
-        language: 'en' as Language,
-        totalXP: 0,
-        mathXP: 0,
-        elaXP: 0,
+        nickname:     onboardingState.nickname,
+        grade:        onboardingState.grade as Grade,
+        language:     'en' as Language,
+        totalXP:      0,
+        mathXP:       0,
+        elaXP:        0,
         currentLevel: 1,
-        streak: 0,
-        lastActive: new Date().toISOString(),
+        streak:       0,
+        lastActive:   new Date().toISOString(),
       };
-      
+
       await createProfile(newProfile);
-      profile = { ...newProfile, id: 1 } as StudentProfile;
-      
-      lessons = await getLessons(profile.grade, 'math', 'en');
+      profile  = { ...newProfile, id: 1 } as StudentProfile;
+      lessons  = await getLessons(profile.grade, 'math', 'en');
       currentPage = 'dashboard';
       render();
     });
   }, 100);
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+
+async function init(): Promise<void> {
+  app = document.getElementById('app')!;
+
+  await seedLessons();
+  initOfflineSync();                        // ← registers online/offline listeners
+  preloadLessons().catch(console.error);    // ← runs Gemini preload in background
+
+  // keep online/offline dot in sidebar live
+  window.addEventListener('online',  () => render());
+  window.addEventListener('offline', () => render());
+
+  console.log('[MentorAI] Boot complete');
+  render();
 }
 
 init().catch(console.error);

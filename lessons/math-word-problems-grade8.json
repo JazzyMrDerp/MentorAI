@@ -7,33 +7,73 @@
   "questions": [
     {
       "prompt": "Sara buys 3 notebooks for $4 each. How much does she spend?",
-      "choices": ["$7", "$9", "$12", "$16"],
+      "choices": [
+        "$7",
+        "$9",
+        "$12",
+        "$16"
+      ],
       "correctIndex": 2,
-      "hint": "Multiply 3 by 4."
+      "hint": "Multiply 3 by 4.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     },
     {
       "prompt": "A bus has 24 students. 6 students get off. How many remain?",
-      "choices": ["18", "20", "24", "30"],
+      "choices": [
+        "18",
+        "20",
+        "24",
+        "30"
+      ],
       "correctIndex": 0,
-      "hint": "This is subtraction."
+      "hint": "This is subtraction.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     },
     {
       "prompt": "Ali reads 15 pages each day for 5 days. How many pages does he read?",
-      "choices": ["20", "50", "75", "90"],
+      "choices": [
+        "20",
+        "50",
+        "75",
+        "90"
+      ],
       "correctIndex": 2,
-      "hint": "Multiply pages per day by number of days."
+      "hint": "Multiply pages per day by number of days.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     },
     {
       "prompt": "A pizza is cut into 8 slices. You eat 3 slices. What fraction is left?",
-      "choices": ["3/8", "5/8", "8/5", "1/2"],
+      "choices": [
+        "3/8",
+        "5/8",
+        "8/5",
+        "1/2"
+      ],
       "correctIndex": 1,
-      "hint": "8 total slices minus 3 eaten."
+      "hint": "8 total slices minus 3 eaten.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     },
     {
       "prompt": "What should you do first when solving a word problem?",
-      "choices": ["Guess quickly", "Read carefully", "Ignore the units", "Pick the biggest number"],
+      "choices": [
+        "Guess quickly",
+        "Read carefully",
+        "Ignore the units",
+        "Pick the biggest number"
+      ],
       "correctIndex": 1,
-      "hint": "Understand the situation before solving."
+      "hint": "Understand the situation before solving.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     }
   ]
 }

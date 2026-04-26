@@ -213,18 +213,30 @@ export async function createProfile(
  *
  * Example: updateProfile('StarCoder99', { totalXP: 450, currentLevel: 3 })
  */
+// FIXED — level is calculated and saved
 export async function updateProfile(
   nickname: string,
   updates: Partial<StudentProfile>
 ): Promise<void> {
   const profile = await getProfile(nickname);
   if (!profile) return;
+<<<<<<< HEAD
   
   const currentXP = profile.totalXP;
   const newXP = updates.totalXP ?? currentXP;
   const newLevel = calculateLevel(newXP);
   
   await db.studentProfile.update(profile.id as number, { ...updates, currentLevel: newLevel });
+=======
+
+  const newXP = updates.totalXP ?? profile.totalXP;
+  const newLevel = calculateLevel(newXP);
+
+  await db.studentProfile.update(profile.id as number, {
+    ...updates,
+    currentLevel: newLevel,
+  });
+>>>>>>> feat/ai-layer
 }
 
 export function calculateLevel(xp: number): number {
