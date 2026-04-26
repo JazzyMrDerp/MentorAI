@@ -4,7 +4,8 @@ import { seedLessons, getLessons, createProfile } from './db';
 import { renderOnboarding, state as onboardingState } from './screens/onboarding.ts';
 import { renderDashboard } from './screens/dashboard.ts';
 import { renderSubjectPage, renderProgressPlaceholder, renderSettingsPlaceholder } from './screens/subject.ts';
-import { renderSidebar } from './compenents/sidebar.ts';
+import { renderLessonScreen } from './screens/lesson.ts';
+import { renderSidebar } from './components/sidebar.ts';
 import type { StudentProfile, Lesson, Grade, Language, Subject } from './types';
 
 // ── Event Delegation ─────────────────────────────────────────────────────────
@@ -45,11 +46,42 @@ async function handleRouteClick(page: string): Promise<void> {
     }
     currentPage = page as Page;
     render();
+  } else if (page.startsWith('lesson-')) {
+    const lessonId = parseInt(page.replace('lesson-', ''), 10);
+    if (lessonId) {
+      currentLessonId = lessonId;
+      currentPage = 'lesson';
+      render();
+    }
   }
 }
 
 function handleActionClick(_action: string): void {
   void _action;
+  if (_action.startsWith('start-lesson-')) {
+    const lessonId = parseInt(_action.replace('start-lesson-', ''), 10);
+    if (lessonId) {
+      currentLessonId = lessonId;
+      currentPage = 'lesson';
+      render();
+    }
+  } else if (_action === 'back') {
+    if (currentPage === 'lesson') {
+      currentPage = currentSubject as Page;
+      currentLessonId = null;
+    } else {
+      currentPage = 'dashboard';
+    }
+    render();
+  } else if (_action === 'continue-math') {
+    currentSubject = 'math';
+    currentPage = 'math';
+    render();
+  } else if (_action === 'continue-ela') {
+    currentSubject = 'ela';
+    currentPage = 'ela';
+    render();
+  }
 }
 
 // ── App state ─────────────────────────────────────────────────────────
@@ -64,6 +96,7 @@ declare global {
   }
 }
 let currentSubject: Subject = 'math';
+let currentLessonId: number | null = null;
 // Expose for debugging in browser console
 Object.defineProperty(window, 'DEBUG_SUBJECT', {
   get: () => currentSubject,
@@ -141,7 +174,9 @@ function render(): void {
       profile,
       isOnline,
       onSelectLesson: (lessonId) => {
-        void lessonId;
+        currentLessonId = lessonId;
+        currentPage = 'lesson';
+        render();
       },
       onStartBoss: (subject) => {
         void subject;
@@ -158,7 +193,9 @@ function render(): void {
       profile,
       isOnline,
       onSelectLesson: (lessonId) => {
-        void lessonId;
+        currentLessonId = lessonId;
+        currentPage = 'lesson';
+        render();
       },
       onStartBoss: (subject) => {
         void subject;
@@ -168,6 +205,33 @@ function render(): void {
         render();
       }
     });
+  } else if (currentPage === 'lesson' && currentLessonId) {
+    const selectedLesson = lessons.find(l => l.id === currentLessonId);
+    if (selectedLesson) {
+      mainContent = renderLessonScreen({
+        lesson: selectedLesson,
+        profile,
+        isOnline,
+        messages: [],
+        isTutorThinking: false,
+        onGoBack: () => {
+          currentPage = currentSubject as Page;
+          currentLessonId = null;
+          render();
+        },
+        onTakeQuiz: () => {
+          console.log('Take Quiz clicked for lesson:', currentLessonId);
+        },
+        onSendMessage: async (prompt) => {
+          console.log('Tutor message:', prompt);
+        }
+      });
+    } else {
+      currentPage = currentSubject as Page;
+      currentLessonId = null;
+      render();
+      return;
+    }
   } else if (currentPage === 'progress') {
     mainContent = renderProgressPlaceholder();
   } else if (currentPage === 'settings') {

@@ -222,9 +222,9 @@ export async function updateProfile(
   
   const currentXP = profile.totalXP;
   const newXP = updates.totalXP ?? currentXP;
-  calculateLevel(newXP);
+  const newLevel = calculateLevel(newXP);
   
-  await db.studentProfile.update(profile.id as number, updates);
+  await db.studentProfile.update(profile.id as number, { ...updates, currentLevel: newLevel });
 }
 
 export function calculateLevel(xp: number): number {

@@ -28,7 +28,7 @@ export interface MentorRouter {
   navigate: (page: string) => Promise<void>;
 }
 
-type RouteName = 'dashboard' | 'lesson' | 'progress' | 'settings';
+type RouteName = 'dashboard' | 'lesson' | 'progress' | 'settings' | 'subject';
 
 function uniqueMessageId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
