@@ -18,7 +18,6 @@ function formatDate(): string {
 
 export function renderDashboard(options: DashboardOptions): HTMLElement {
   const container = document.createElement('div');
-  container.className = 'app-layout';
   
   const nickname = options.profile?.nickname ?? 'Student';
   const totalXP = options.profile?.totalXP ?? 0;
@@ -35,7 +34,9 @@ export function renderDashboard(options: DashboardOptions): HTMLElement {
 
   container.innerHTML = `
     <div class="main-content">
-      <div class="dashboard-header">
+      <div class="page-center">
+        <div class="dashboard-inner">
+        <div class="dashboard-header">
         <div>
           <h1 class="dashboard-welcome">Welcome back, ${nickname}</h1>
           <p class="dashboard-sub">Ready to continue learning?</p>
@@ -92,7 +93,7 @@ export function renderDashboard(options: DashboardOptions): HTMLElement {
           </div>
           <div class="continue-title">Math</div>
           <div class="continue-meta">${mathLessons.length} lessons available</div>
-          <button class="btn-continue-math">
+          <button class="btn-continue-math" data-action="continue-math">
             Continue →
           </button>
         </div>
@@ -107,10 +108,11 @@ export function renderDashboard(options: DashboardOptions): HTMLElement {
           </div>
           <div class="continue-title">ELA</div>
           <div class="continue-meta">${elaLessons.length} lessons available</div>
-          <button class="btn-continue-ela">
+          <button class="btn-continue-ela" data-action="continue-ela">
             Continue →
           </button>
         </div>
+      </div>
       </div>
     </div>
   `;
@@ -125,8 +127,12 @@ export function renderDashboard(options: DashboardOptions): HTMLElement {
   const mathCard = container.querySelector('[data-subject="math"]');
   const elaCard = container.querySelector('[data-subject="ela"]');
 
-  mathCard?.addEventListener('click', () => options.onOpenLesson('math'));
-  elaCard?.addEventListener('click', () => options.onOpenLesson('ela'));
+  mathCard?.addEventListener('click', () => {
+    options.onOpenLesson('math');
+  });
+  elaCard?.addEventListener('click', () => {
+    options.onOpenLesson('ela');
+  });
 
   return container;
 }

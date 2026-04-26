@@ -3,15 +3,73 @@ import './style.css';
 import { seedLessons, getLessons, createProfile } from './db';
 import { renderOnboarding, state as onboardingState } from './screens/onboarding.ts';
 import { renderDashboard } from './screens/dashboard.ts';
+import { renderSubjectPage, renderProgressPlaceholder, renderSettingsPlaceholder } from './screens/subject.ts';
 import { renderSidebar } from './compenents/sidebar.ts';
 import type { StudentProfile, Lesson, Grade, Language, Subject } from './types';
 
+// ── Event Delegation ─────────────────────────────────────────────────────────
+// Handle all clicks via delegation on document
+document.addEventListener('click', (e) => {
+  const target = e.target as HTMLElement;
+  const button = target.closest('[data-page]') || target.closest('[data-action]') || target.closest('[data-route]');
+  if (!button) return;
+  
+  const page = (button as HTMLElement).dataset.page;
+  const route = (button as HTMLElement).dataset.route;
+  const _action = (button as HTMLElement).dataset.action;
+  
+  if (page || route) {
+    const targetPage = page || route || 'dashboard';
+    handleRouteClick(targetPage);
+  }
+  
+  if (_action) {
+    handleActionClick(_action);
+  }
+});
+
+async function handleRouteClick(page: string): Promise<void> {
+  if (page === 'dashboard') {
+    currentPage = 'dashboard';
+    render();
+  } else if (page === 'progress') {
+    currentPage = 'progress';
+    render();
+  } else if (page === 'settings') {
+    currentPage = 'settings';
+    render();
+  } else if (page === 'math' || page === 'ela') {
+    currentSubject = page as Subject;
+    if (profile) {
+      lessons = await getLessons(profile.grade, page as Subject, 'en');
+    }
+    currentPage = page as Page;
+    render();
+  }
+}
+
+function handleActionClick(_action: string): void {
+  void _action;
+}
+
 // ── App state ─────────────────────────────────────────────────────────
 
-type Page = 'dashboard' | 'onboarding' | 'lesson';
+type Page = 'dashboard' | 'onboarding' | 'lesson' | 'progress' | 'settings' | 'math' | 'ela';
 
 let currentPage: Page = 'onboarding';
+// Routing state - used for tracking
+declare global {
+  interface Window {
+    DEBUG_SUBJECT: Subject;
+  }
+}
 let currentSubject: Subject = 'math';
+// Expose for debugging in browser console
+Object.defineProperty(window, 'DEBUG_SUBJECT', {
+  get: () => currentSubject,
+  set: (v) => { currentSubject = v; },
+  configurable: true
+});
 let app: HTMLElement;
 let profile: StudentProfile | null = null;
 let lessons: Lesson[] = [];
@@ -36,7 +94,7 @@ function render(): void {
   app.innerHTML = '';
   const isOnline = navigator.onLine;
   
-  if (currentPage !== 'dashboard') {
+  if (currentPage === 'onboarding') {
     const onboarding = renderOnboarding();
     app.appendChild(onboarding);
     return;
@@ -51,26 +109,83 @@ function render(): void {
     currentPage: currentPage,
     isOnline,
     onNavigate: async (page) => {
-      console.log('Navigate to:', page);
-      currentSubject = page === 'ela' ? 'ela' : 'math';
-      if (currentSubject === 'ela') {
-        lessons = await getLessons(profile!.grade, 'ela', 'en');
+      if (page === 'dashboard') {
+        currentPage = 'dashboard';
+        render();
+      } else if (page === 'progress') {
+        currentPage = 'progress';
+        render();
+      } else if (page === 'settings') {
+        currentPage = 'settings';
+        render();
+      } else if (page === 'math' || page === 'ela') {
+        currentSubject = page as Subject;
+        if (profile) {
+          lessons = await getLessons(profile.grade, page as Subject, 'en');
+        }
+        currentPage = page as Page;
+        render();
       } else {
-        lessons = await getLessons(profile!.grade, 'math', 'en');
+        currentPage = 'dashboard';
+        render();
       }
-      render();
     }
   });
   
-  const mainContent = renderDashboard({
-    profile,
-    lessons,
-    isOnline,
-    onOpenLesson: (subject) => {
-      console.log('Open lesson:', subject);
-      currentSubject = subject;
-    }
-  });
+  let mainContent: HTMLElement;
+  
+  if (currentPage === 'math') {
+    mainContent = renderSubjectPage({
+      subject: 'math',
+      lessons: lessons.filter(l => l.subject === 'math'),
+      profile,
+      isOnline,
+      onSelectLesson: (lessonId) => {
+        void lessonId;
+      },
+      onStartBoss: (subject) => {
+        void subject;
+      },
+      onGoBack: () => {
+        currentPage = 'dashboard';
+        render();
+      }
+    });
+  } else if (currentPage === 'ela') {
+    mainContent = renderSubjectPage({
+      subject: 'ela',
+      lessons: lessons.filter(l => l.subject === 'ela'),
+      profile,
+      isOnline,
+      onSelectLesson: (lessonId) => {
+        void lessonId;
+      },
+      onStartBoss: (subject) => {
+        void subject;
+      },
+      onGoBack: () => {
+        currentPage = 'dashboard';
+        render();
+      }
+    });
+  } else if (currentPage === 'progress') {
+    mainContent = renderProgressPlaceholder();
+  } else if (currentPage === 'settings') {
+    mainContent = renderSettingsPlaceholder();
+  } else {
+    // Default to dashboard
+    mainContent = renderDashboard({
+      profile,
+      lessons,
+      isOnline,
+      onOpenLesson: (subject) => {
+        currentSubject = subject;
+        document.title = 'MentorAI - ' + subject.toUpperCase();
+        currentPage = subject as Page;
+        render();
+      }
+    });
+  }
   
   layout.appendChild(sidebar);
   layout.appendChild(mainContent);

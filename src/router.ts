@@ -25,9 +25,10 @@ export interface MentorRouter {
   mount: () => Promise<void>;
   setOnlineStatus: (isOnline: boolean) => Promise<void>;
   setSnapshot: (snapshot: AppSnapshot) => Promise<void>;
+  navigate: (page: string) => Promise<void>;
 }
 
-type RouteName = 'dashboard' | 'lesson';
+type RouteName = 'dashboard' | 'lesson' | 'progress' | 'settings';
 
 function uniqueMessageId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -168,6 +169,16 @@ export function createRouter(options: RouterOptions): MentorRouter {
     await render();
   }
 
+  async function openProgress(): Promise<void> {
+    currentRoute = 'progress';
+    await render();
+  }
+
+  async function openSettings(): Promise<void> {
+    currentRoute = 'settings';
+    await render();
+  }
+
   async function returnToDashboard(): Promise<void> {
     snapshot = {
       lessons: [...snapshot.lessons],
@@ -241,6 +252,30 @@ export function createRouter(options: RouterOptions): MentorRouter {
   }
 
   function buildScreen(): HTMLElement {
+    if (currentRoute === 'progress') {
+      const container = document.createElement('div');
+      container.className = 'main-content';
+      container.innerHTML = `
+        <div class="placeholder-screen">
+          <div class="placeholder-icon">📊</div>
+          <h1>Progress</h1>
+          <p>Track your learning journey coming soon.</p>
+        </div>
+      `;
+      return container;
+    }
+    if (currentRoute === 'settings') {
+      const container = document.createElement('div');
+      container.className = 'main-content';
+      container.innerHTML = `
+        <div class="placeholder-screen">
+          <div class="placeholder-icon">⚙️</div>
+          <h1>Settings</h1>
+          <p>Customize your experience coming soon.</p>
+        </div>
+      `;
+      return container;
+    }
     if (currentRoute === 'lesson' && snapshot.state.currentLesson) {
       return renderLessonScreen({
         lesson: snapshot.state.currentLesson,
@@ -276,14 +311,11 @@ export function createRouter(options: RouterOptions): MentorRouter {
     await swapScreen(buildScreen());
   }
 
-  return {
+return {
     mount: async () => {
       await render();
     },
     setOnlineStatus: async (isOnline) => {
-      if (snapshot.state.isOnline === isOnline) {
-        return;
-      }
 
       snapshot = {
         lessons: [...snapshot.lessons],
@@ -310,6 +342,17 @@ export function createRouter(options: RouterOptions): MentorRouter {
     setSnapshot: async (nextSnapshot) => {
       snapshot = cloneSnapshot(nextSnapshot);
       await render();
+    },
+    navigate: async (page: string) => {
+      if (page === 'dashboard') {
+        await returnToDashboard();
+      } else if (page === 'progress') {
+        await openProgress();
+      } else if (page === 'settings') {
+        await openSettings();
+      } else if (page === 'math' || page === 'ela') {
+        await openLesson(page as Subject);
+      }
     },
   };
 }
