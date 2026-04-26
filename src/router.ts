@@ -1,5 +1,5 @@
 import { getCopy } from './copy.ts';
-import { renderDashboardScreen } from './screens/dashboard.ts';
+import { renderDashboard } from './screens/dashboard.ts';
 import { renderLessonScreen, type TutorMessage } from './screens/lesson.ts';
 import type { AppState, Grade, Language, Lesson, Subject } from './types.ts';
 
@@ -29,11 +29,6 @@ export interface MentorRouter {
 
 type RouteName = 'dashboard' | 'lesson';
 
-type ScreenBuild = {
-  element: HTMLElement;
-  afterMount?: () => void;
-};
-
 function uniqueMessageId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
@@ -55,53 +50,28 @@ function chooseLesson(lessons: Lesson[], subject: Subject): Lesson | null {
   return lessons.find((lesson) => lesson.subject === subject) ?? null;
 }
 
-function initialTutorMessages(lesson: Lesson, language: Language, isOnline: boolean): TutorMessage[] {
-  const copy = getCopy(language);
+function initialTutorMessages(lesson: Lesson, isOnline: boolean): TutorMessage[] {
+  const copy = getCopy('en');
 
   return [
     {
       id: uniqueMessageId(),
       role: 'mentor',
       text: isOnline ? copy.lesson.chatWelcomeOnline : copy.lesson.chatWelcomeOffline,
-      tone: isOnline ? 'Live layer' : 'Offline fallback',
     },
     {
       id: uniqueMessageId(),
       role: 'mentor',
-      text:
-        language === 'es'
-          ? `Hoy vamos a trabajar ${lesson.title.toLowerCase()}. Pideme un resumen, una pista o que practiquemos una idea clave.`
-          : `Today we are working on ${lesson.title.toLowerCase()}. Ask for a summary, a hint, or a practice explanation any time.`,
-      tone: 'Lesson guide',
+      text: `Today we are working on ${lesson.title.toLowerCase()}. Ask for a summary, a hint, or a practice explanation any time.`,
     },
   ];
 }
 
-function nextTutorReply(prompt: string, lesson: Lesson, language: Language, isOnline: boolean): string {
+function nextTutorReply(prompt: string, lesson: Lesson, isOnline: boolean): string {
   const normalized = prompt.trim().toLowerCase();
   const firstParagraph = lesson.content.split(/\n+/).find(Boolean) ?? lesson.content;
   const firstHint = lesson.questions[0]?.hint;
   const quizCount = lesson.questions.length;
-
-  if (language === 'es') {
-    if (normalized.includes('pista') || normalized.includes('ayuda') || normalized.includes('atas')) {
-      return firstHint
-        ? `Claro. Una buena pista es esta: ${firstHint}`
-        : 'Claro. Empieza por identificar la idea principal de la leccion y luego conecta cada ejemplo con esa idea.';
-    }
-
-    if (normalized.includes('resumen') || normalized.includes('explica') || normalized.includes('que significa')) {
-      return `Resumen rapido: ${firstParagraph}`;
-    }
-
-    if (normalized.includes('pregunta') || normalized.includes('quiz') || normalized.includes('prueba')) {
-      return `Tu practica tiene ${quizCount} preguntas guardadas para esta leccion. Lee con calma, detecta el patron y usa una pista solo si de verdad la necesitas.`;
-    }
-
-    return isOnline
-      ? 'La capa visual ya esta lista. Cuando Gemini se conecte, esta caja enviara respuestas mas personalizadas. Por ahora, toma una idea del texto y conviertela en tu propia explicacion.'
-      : 'Sigues cubierto sin internet. Usa las pistas guardadas, relee la primera parte de la leccion y busca una palabra clave que se repita.';
-  }
 
   if (normalized.includes('hint') || normalized.includes('help') || normalized.includes('stuck')) {
     return firstHint
@@ -142,22 +112,17 @@ export function createRouter(options: RouterOptions): MentorRouter {
   let currentRoute: RouteName = snapshot.state.currentLesson ? 'lesson' : 'dashboard';
   let activeScreen: HTMLElement | null = null;
   let tutorMessages: TutorMessage[] = snapshot.state.currentLesson
-    ? initialTutorMessages(
-        snapshot.state.currentLesson,
-        languageForState(snapshot.state),
-        snapshot.state.isOnline,
-      )
+    ? initialTutorMessages(snapshot.state.currentLesson, snapshot.state.isOnline)
     : [];
   let tutorThinking = false;
 
-  async function swapScreen(nextScreen: ScreenBuild): Promise<void> {
+  async function swapScreen(nextScreen: HTMLElement): Promise<void> {
     if (activeScreen) {
       activeScreen.remove();
     }
 
-    contentHost.appendChild(nextScreen.element);
-    activeScreen = nextScreen.element;
-    nextScreen.afterMount?.();
+    contentHost.appendChild(nextScreen);
+    activeScreen = nextScreen;
   }
 
   function withCurrentLesson(nextSnapshot: AppSnapshot): AppSnapshot {
@@ -199,7 +164,7 @@ export function createRouter(options: RouterOptions): MentorRouter {
 
     currentRoute = 'lesson';
     tutorThinking = false;
-    tutorMessages = initialTutorMessages(nextLesson, languageForState(snapshot.state), snapshot.state.isOnline);
+    tutorMessages = initialTutorMessages(nextLesson, snapshot.state.isOnline);
     await render();
   }
 
@@ -216,23 +181,23 @@ export function createRouter(options: RouterOptions): MentorRouter {
     await render();
   }
 
-  async function createStudentProfile(input: CreateProfileInput): Promise<void> {
+  // Router options are kept for future extensibility
+  void _createStudentProfile;
+  void _setLanguage;
+
+  async function _createStudentProfile(input: CreateProfileInput): Promise<void> {
     snapshot = cloneSnapshot(await options.onCreateProfile(input));
     currentRoute = 'dashboard';
     tutorThinking = false;
     await render();
   }
 
-  async function setLanguage(language: Language): Promise<void> {
+  async function _setLanguage(language: Language): Promise<void> {
     const nextSnapshot = cloneSnapshot(await options.onSetLanguage(language));
     snapshot = withCurrentLesson(nextSnapshot);
 
     if (snapshot.state.currentLesson) {
-      tutorMessages = initialTutorMessages(
-        snapshot.state.currentLesson,
-        languageForState(snapshot.state),
-        snapshot.state.isOnline,
-      );
+      tutorMessages = initialTutorMessages(snapshot.state.currentLesson, snapshot.state.isOnline);
       currentRoute = 'lesson';
     }
 
@@ -267,17 +232,15 @@ export function createRouter(options: RouterOptions): MentorRouter {
         text: nextTutorReply(
           prompt,
           snapshot.state.currentLesson,
-          languageForState(snapshot.state),
           snapshot.state.isOnline,
         ),
-        tone: snapshot.state.isOnline ? 'Live layer' : 'Offline fallback',
       },
     ];
     tutorThinking = false;
     await render();
   }
 
-  function buildScreen(): ScreenBuild {
+  function buildScreen(): HTMLElement {
     if (currentRoute === 'lesson' && snapshot.state.currentLesson) {
       return renderLessonScreen({
         lesson: snapshot.state.currentLesson,
@@ -288,6 +251,9 @@ export function createRouter(options: RouterOptions): MentorRouter {
         onGoBack: () => {
           void returnToDashboard();
         },
+        onTakeQuiz: () => {
+          console.log('Quiz not yet implemented');
+        },
         onSendMessage: async (prompt) => {
           await sendTutorMessage(prompt);
         },
@@ -296,25 +262,18 @@ export function createRouter(options: RouterOptions): MentorRouter {
 
     currentRoute = 'dashboard';
 
-    return renderDashboardScreen({
+    return renderDashboard({
       profile: snapshot.state.profile,
       lessons: snapshot.lessons,
       isOnline: snapshot.state.isOnline,
-      onCreateProfile: async (input) => {
-        await createStudentProfile(input);
-      },
-      onOpenLesson: (subject) => {
+      onOpenLesson: (subject: Subject) => {
         void openLesson(subject);
-      },
-      onSetLanguage: async (language) => {
-        await setLanguage(language);
       },
     });
   }
 
   async function render(): Promise<void> {
-    const nextScreen = buildScreen();
-    await swapScreen(nextScreen);
+    await swapScreen(buildScreen());
   }
 
   return {
@@ -342,7 +301,6 @@ export function createRouter(options: RouterOptions): MentorRouter {
             id: uniqueMessageId(),
             role: 'mentor',
             text: isOnline ? copy.lesson.chatBackOnline : copy.lesson.chatDroppedOffline,
-            tone: isOnline ? 'Connection restored' : 'Connection lost',
           },
         ];
       }
