@@ -1,0 +1,39 @@
+{
+  "subject": "math",
+  "grade": 7,
+  "language": "en",
+  "title": "Geometry: Area and Perimeter",
+  "content": "Geometry studies shapes, sizes, and space. Area measures the space inside a shape. Perimeter measures the distance around a shape. For a rectangle, area equals length times width, and perimeter equals 2 times length plus 2 times width.",
+  "questions": [
+    {
+      "prompt": "What does area measure?",
+      "choices": ["Distance around a shape", "Space inside a shape", "Weight of a shape", "Color of a shape"],
+      "correctIndex": 1,
+      "hint": "Area is the inside space."
+    },
+    {
+      "prompt": "What is the area of a rectangle with length 5 and width 3?",
+      "choices": ["8", "10", "15", "30"],
+      "correctIndex": 2,
+      "hint": "Multiply length by width."
+    },
+    {
+      "prompt": "What does perimeter measure?",
+      "choices": ["Inside space", "Distance around a shape", "Volume", "Angle size only"],
+      "correctIndex": 1,
+      "hint": "Perimeter is like walking around the border."
+    },
+    {
+      "prompt": "What is the perimeter of a rectangle with length 6 and width 2?",
+      "choices": ["8", "12", "16", "24"],
+      "correctIndex": 2,
+      "hint": "Add all sides: 6 + 6 + 2 + 2."
+    },
+    {
+      "prompt": "A square has side length 4. What is its area?",
+      "choices": ["8", "12", "16", "20"],
+      "correctIndex": 2,
+      "hint": "Area of a square is side times side."
+    }
+  ]
+}
