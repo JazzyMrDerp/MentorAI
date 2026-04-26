@@ -54,6 +54,13 @@ export async function seedLessons(): Promise<void> {
 }
 
 /**
+ * Fetch a single lesson by ID.
+ */
+export async function getLesson(id: number): Promise<Lesson | undefined> {
+  return db.lessons.get(id);
+}
+
+/**
  * Fetch all lessons matching a specific grade, subject, and language.
  * Used by Person 2's lesson screen to load available content offline.
  */
