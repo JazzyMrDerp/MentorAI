@@ -104,6 +104,7 @@ export interface SyncQueueItem {
 
 /** The types of Gemini calls that can be queued for later */
 export type SyncType =
+  | 'replace_question'  // Replace a correctly-answered question with a harder one
   | 'generate_lesson'   // Generate a new AI lesson and save it offline
   | 'progress_report'   // Generate a teacher summary for the dashboard
   | 'get_feedback';     // Get AI feedback on a student's written answer

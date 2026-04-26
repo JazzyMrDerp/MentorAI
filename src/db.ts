@@ -4,7 +4,7 @@
 // Import query functions from here instead of touching `db` directly.
 
 import Dexie, { type EntityTable } from 'dexie';
-import type { Lesson, Progress, StudentProfile, SyncQueueItem, Subject, Grade, Language } from './types';
+import type { Lesson, Question, Progress, StudentProfile, SyncQueueItem, Subject, Grade, Language } from './types';
 
 // ── Database Setup ────────────────────────────────────────────────────────────
 
@@ -75,6 +75,22 @@ export async function saveLesson(lesson: Omit<Lesson, 'id'>): Promise<number> {
 }
 
 /**
+ * Replace a specific question in a lesson with a new one.
+ * Called by the sync engine after Gemini generates a replacement.
+ */
+export async function replaceQuestionInLesson(
+  lessonId:      number,
+  questionIndex: number,
+  newQuestion:  Question
+): Promise<void> {
+  const lesson = await db.lessons.get(lessonId);
+  if (!lesson) return;
+
+  lesson.questions[questionIndex] = newQuestion;
+  await db.lessons.update(lessonId, { questions: lesson.questions });
+}
+
+/**
  * Save multiple lessons at once — used on first launch to bulk-load
  * all pre-written lesson JSON files into the database in one operation.
  */
@@ -112,14 +128,27 @@ export async function markQuestionAnswered(
 
   await db.lessons.update(lessonId, { questions: lesson.questions });
 
-  // Auto-queue Gemini replacement if student aced the whole lesson
+  // Queue Gemini replacement if answered correctly and not at max difficulty
+  const currentQ = lesson.questions[questionIndex];
+  if (isCorrect && currentQ.difficulty < 3) {
+    await addToSyncQueue('replace_question', {
+      lessonId:      lessonId,
+      questionIndex: questionIndex,
+      subject:      lesson.subject,
+      grade:        lesson.grade,
+      topic:       lesson.title,
+      difficulty:  currentQ.difficulty,
+    });
+  }
+
+  // Auto-queue entire new lesson if student aced the whole existing lesson
   const allCorrect = lesson.questions.every(q => q.answered && q.correct);
   if (allCorrect) {
     await addToSyncQueue('generate_lesson', {
       subject:  lesson.subject,
       grade:    lesson.grade,
       language: lesson.language,
-      topic:    lesson.title,        // Gemini uses this to make a harder follow-up
+      topic:    lesson.title,
     });
   }
 }

@@ -1,5 +1,5 @@
 // src/gemini.ts
-import type { Lesson, GeminiLessonResponse, Subject, Grade, Language } from './types';
+import type { Lesson, GeminiLessonResponse, Subject, Grade, Language, Question } from './types';
 
 const API_KEY = import.meta.env.VITE_GEMINI_KEY as string;
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
@@ -81,7 +81,50 @@ export async function generateLesson(
   };
 }
 
-// ── AI Tutor ──────────────────────────────────────────────────────────────────
+// ── Question Replacement ────────────────────────────────────────────────────────
+
+/**
+ * Ask Gemini to generate a single harder replacement question for a lesson.
+ * Only called when a student answers a question correctly.
+ */
+export async function replaceQuestion(
+  subject:  Subject,
+  grade:    Grade,
+  topic:    string,
+  currentDifficulty: 1 | 2 | 3
+): Promise<Question> {
+  const nextDifficulty = Math.min(currentDifficulty + 1, 3) as 1 | 2 | 3;
+
+  const prompt = `
+    You are creating a grade ${grade} ${subject === 'ela' ? 'English Language Arts' : 'Math'} question.
+    Topic: "${topic}"
+    Current difficulty: ${currentDifficulty}
+    New difficulty level: ${nextDifficulty} (1=easy, 2=medium, 3=hard)
+
+    Respond ONLY with valid JSON in exactly this shape — no explanation, no markdown:
+    {
+      "prompt": "question text",
+      "choices": ["option A", "option B", "option C", "option D"],
+      "correctIndex": 0,
+      "hint": "one sentence hint",
+      "answered": false,
+      "correct": false,
+      "difficulty": ${nextDifficulty}
+    }
+
+    Rules:
+    - Make this harder than difficulty ${currentDifficulty} but still solvable for grade ${grade}
+    - Keep language appropriate for middle school students
+    - correctIndex must be 0, 1, 2, or 3
+    - Do NOT include any text outside the JSON object
+  `;
+
+  const raw     = await callGemini(prompt);
+  const cleaned = raw.replace(/```json|```/g, '').trim();
+  const parsed  = JSON.parse(cleaned) as Question;
+
+  return parsed;
+}
 
 /**
  * Get a tutor response for a student's live question.
