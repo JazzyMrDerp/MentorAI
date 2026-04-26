@@ -36,7 +36,7 @@ export function renderSidebar(options: SidebarOptions): HTMLElement {
     
     <nav class="sidebar-nav">
       ${navItems.map(item => `
-        <button class="nav-item ${options.currentPage === item.id ? 'active' : ''}" data-page="${item.id}">
+        <button class="nav-item ${options.currentPage === item.id ? 'active' : ''}" data-page="${item.id}" data-route="${item.id}">
           <span class="nav-icon">${item.icon}</span>
           <span>${item.label}</span>
         </button>
