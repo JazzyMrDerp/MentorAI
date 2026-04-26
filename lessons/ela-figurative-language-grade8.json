@@ -7,33 +7,73 @@
   "questions": [
     {
       "prompt": "Which sentence is a simile?",
-      "choices": ["She runs like the wind", "The sky is blue", "He opened the door", "I ate lunch"],
+      "choices": [
+        "She runs like the wind",
+        "The sky is blue",
+        "He opened the door",
+        "I ate lunch"
+      ],
       "correctIndex": 0,
-      "hint": "Similes use like or as."
+      "hint": "Similes use like or as.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     },
     {
       "prompt": "Which sentence is a metaphor?",
-      "choices": ["He is a rock during hard times", "She sings like a bird", "The cat slept", "The book is on the table"],
+      "choices": [
+        "He is a rock during hard times",
+        "She sings like a bird",
+        "The cat slept",
+        "The book is on the table"
+      ],
       "correctIndex": 0,
-      "hint": "A metaphor compares directly."
+      "hint": "A metaphor compares directly.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     },
     {
       "prompt": "What is personification?",
-      "choices": ["Giving human traits to non-human things", "Adding numbers", "Using only facts", "Ending a sentence"],
+      "choices": [
+        "Giving human traits to non-human things",
+        "Adding numbers",
+        "Using only facts",
+        "Ending a sentence"
+      ],
       "correctIndex": 0,
-      "hint": "Think of an object acting like a person."
+      "hint": "Think of an object acting like a person.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     },
     {
       "prompt": "Which is personification?",
-      "choices": ["The wind whispered through the trees", "The wind was strong", "The tree was tall", "The sky was cloudy"],
+      "choices": [
+        "The wind whispered through the trees",
+        "The wind was strong",
+        "The tree was tall",
+        "The sky was cloudy"
+      ],
       "correctIndex": 0,
-      "hint": "Can wind literally whisper?"
+      "hint": "Can wind literally whisper?",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     },
     {
       "prompt": "Why do writers use figurative language?",
-      "choices": ["To make writing more vivid", "To remove meaning", "To avoid details", "To make math easier"],
+      "choices": [
+        "To make writing more vivid",
+        "To remove meaning",
+        "To avoid details",
+        "To make math easier"
+      ],
       "correctIndex": 0,
-      "hint": "It helps readers imagine ideas."
+      "hint": "It helps readers imagine ideas.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     }
   ]
 }

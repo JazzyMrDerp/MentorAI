@@ -7,33 +7,73 @@
   "questions": [
     {
       "prompt": "What is the numerator?",
-      "choices": ["Top number", "Bottom number", "Whole number", "Decimal"],
+      "choices": [
+        "Top number",
+        "Bottom number",
+        "Whole number",
+        "Decimal"
+      ],
       "correctIndex": 0,
-      "hint": "It is written on top of the fraction."
+      "hint": "It is written on top of the fraction.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     },
     {
       "prompt": "What does the denominator represent?",
-      "choices": ["Number of parts you have", "Total equal parts", "Final answer", "Decimal value"],
+      "choices": [
+        "Number of parts you have",
+        "Total equal parts",
+        "Final answer",
+        "Decimal value"
+      ],
       "correctIndex": 1,
-      "hint": "It tells how many pieces the whole is split into."
+      "hint": "It tells how many pieces the whole is split into.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     },
     {
       "prompt": "Which fraction is larger?",
-      "choices": ["1/4", "1/2", "1/8", "1/10"],
+      "choices": [
+        "1/4",
+        "1/2",
+        "1/8",
+        "1/10"
+      ],
       "correctIndex": 1,
-      "hint": "Think about which is closer to a whole."
+      "hint": "Think about which is closer to a whole.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     },
     {
       "prompt": "What is 1/2 + 1/4?",
-      "choices": ["1/6", "2/6", "3/4", "1/8"],
+      "choices": [
+        "1/6",
+        "2/6",
+        "3/4",
+        "1/8"
+      ],
       "correctIndex": 2,
-      "hint": "Convert 1/2 into 2/4 first."
+      "hint": "Convert 1/2 into 2/4 first.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     },
     {
       "prompt": "Which is equal to 1/2?",
-      "choices": ["2/4", "3/4", "1/4", "5/4"],
+      "choices": [
+        "2/4",
+        "3/4",
+        "1/4",
+        "5/4"
+      ],
       "correctIndex": 0,
-      "hint": "Multiply numerator and denominator by 2."
+      "hint": "Multiply numerator and denominator by 2.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     }
   ]
 }

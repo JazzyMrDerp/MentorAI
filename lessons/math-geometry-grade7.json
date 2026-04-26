@@ -7,33 +7,73 @@
   "questions": [
     {
       "prompt": "What does area measure?",
-      "choices": ["Distance around a shape", "Space inside a shape", "Weight of a shape", "Color of a shape"],
+      "choices": [
+        "Distance around a shape",
+        "Space inside a shape",
+        "Weight of a shape",
+        "Color of a shape"
+      ],
       "correctIndex": 1,
-      "hint": "Area is the inside space."
+      "hint": "Area is the inside space.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     },
     {
       "prompt": "What is the area of a rectangle with length 5 and width 3?",
-      "choices": ["8", "10", "15", "30"],
+      "choices": [
+        "8",
+        "10",
+        "15",
+        "30"
+      ],
       "correctIndex": 2,
-      "hint": "Multiply length by width."
+      "hint": "Multiply length by width.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     },
     {
       "prompt": "What does perimeter measure?",
-      "choices": ["Inside space", "Distance around a shape", "Volume", "Angle size only"],
+      "choices": [
+        "Inside space",
+        "Distance around a shape",
+        "Volume",
+        "Angle size only"
+      ],
       "correctIndex": 1,
-      "hint": "Perimeter is like walking around the border."
+      "hint": "Perimeter is like walking around the border.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     },
     {
       "prompt": "What is the perimeter of a rectangle with length 6 and width 2?",
-      "choices": ["8", "12", "16", "24"],
+      "choices": [
+        "8",
+        "12",
+        "16",
+        "24"
+      ],
       "correctIndex": 2,
-      "hint": "Add all sides: 6 + 6 + 2 + 2."
+      "hint": "Add all sides: 6 + 6 + 2 + 2.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     },
     {
       "prompt": "A square has side length 4. What is its area?",
-      "choices": ["8", "12", "16", "20"],
+      "choices": [
+        "8",
+        "12",
+        "16",
+        "20"
+      ],
       "correctIndex": 2,
-      "hint": "Area of a square is side times side."
+      "hint": "Area of a square is side times side.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     }
   ]
 }
