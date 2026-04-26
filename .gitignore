@@ -1,9 +1,4 @@
-echo ".env" >> .gitignore
-git add .gitignore
-git commit -m "chore: add .env to gitignore"
-
-VITE_GEMINI_KEY= API KEY
-
+.env
 # Logs
 logs
 *.log

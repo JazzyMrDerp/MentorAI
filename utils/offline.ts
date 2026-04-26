@@ -4,10 +4,16 @@ import {
   clearSyncItem,
   incrementSyncRetry,
   saveLesson,
+  replaceQuestionInLesson,
   updateProfile,
 } from '../src/db';
-import { generateLesson, generateProgressReport, getTutorResponse } from '../src/gemini';
-import type { SyncQueueItem, Language, Subject, Grade } from '../src/types';
+import {
+  generateLesson,
+  replaceQuestion,
+  generateProgressReport,
+  getWritingFeedback,
+} from '../src/gemini';
+import type { SyncQueueItem, Subject, Grade } from '../src/types';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -21,12 +27,11 @@ let syncInProgress    = false;
 let syncDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 // ── UI Callbacks ──────────────────────────────────────────────────────────────
-// Person 2 wires these up via registerSyncCallbacks() to show status in the UI
 
-export let onSyncStart:    () => void                  = () => {};
-export let onSyncComplete: (count: number) => void     = () => {};
-export let onSyncError:    (msg: string) => void       = () => {};
-export let onStatusChange: (online: boolean) => void   = () => {};
+export let onSyncStart:    () => void                = () => {};
+export let onSyncComplete: (count: number) => void   = () => {};
+export let onSyncError:    (msg: string) => void     = () => {};
+export let onStatusChange: (online: boolean) => void = () => {};
 
 /**
  * Call this once in main.ts to connect the sync engine to your UI.
@@ -46,15 +51,10 @@ export function registerSyncCallbacks(callbacks: {
 
 // ── Connection Helpers ────────────────────────────────────────────────────────
 
-/** Returns true if the browser believes it has internet */
 export function isOnline(): boolean {
   return navigator.onLine;
 }
 
-/**
- * Returns the current connection + sync status.
- * Person 2 uses this to drive the status badge in the UI.
- */
 export function getConnectionStatus(): 'online' | 'offline' | 'syncing' {
   if (syncInProgress) return 'syncing';
   return isOnline() ? 'online' : 'offline';
@@ -70,7 +70,6 @@ export function initOfflineSync(): void {
   window.addEventListener('online', () => {
     onStatusChange(true);
     if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
-    // Wait 1.5s before syncing to avoid flaky connections
     syncDebounceTimer = setTimeout(() => flushSyncQueue(), SYNC_DEBOUNCE);
   });
 
@@ -79,23 +78,17 @@ export function initOfflineSync(): void {
     if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
   });
 
-  // Also sync when user returns to the tab after being away
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && isOnline()) {
       flushSyncQueue();
     }
   });
 
-  // Sync immediately if already online at launch
   if (isOnline()) flushSyncQueue();
 }
 
 // ── Sync Queue Processor ──────────────────────────────────────────────────────
 
-/**
- * Processes every pending item in the sync queue.
- * Called automatically on reconnect — safe to call manually too.
- */
 export async function flushSyncQueue(): Promise<void> {
   if (syncInProgress || !isOnline()) return;
   syncInProgress = true;
@@ -115,21 +108,26 @@ export async function flushSyncQueue(): Promise<void> {
         break;
       }
 
-      // Skip items that have failed too many times
+      const itemId = item.id;
+      if (typeof itemId !== 'number') {
+        console.warn('[Sync] Queue item missing numeric id — skipping.');
+        continue;
+      }
+
       if ((item.retries ?? 0) >= MAX_RETRIES) {
-        console.warn(`[Sync] Item ${item.id} hit max retries — clearing.`);
-        await clearSyncItem(item.id);
+        console.warn(`[Sync] Item ${itemId} hit max retries — clearing.`);
+        await clearSyncItem(itemId);
         continue;
       }
 
       const success = await processSyncItem(item);
 
       if (success) {
-        await clearSyncItem(item.id);
+        await clearSyncItem(itemId);
         processedCount++;
-        console.log(`[Sync] ✓ ${item.type} (id: ${item.id})`);
+        console.log(`[Sync] ✓ ${item.type} (id: ${itemId})`);
       } else {
-        await incrementSyncRetry(item.id);
+        await incrementSyncRetry(itemId);
         console.warn(`[Sync] ✗ ${item.type} failed — retry ${(item.retries ?? 0) + 1}`);
         await delay(RETRY_DELAY_MS);
       }
@@ -149,22 +147,31 @@ export async function flushSyncQueue(): Promise<void> {
 
 // ── Item Router ───────────────────────────────────────────────────────────────
 
-/**
- * Routes a single queued item to the correct Gemini handler.
- * Returns true on success, false on any failure.
- */
 async function processSyncItem(item: SyncQueueItem): Promise<boolean> {
   try {
     switch (item.type) {
 
-      case 'generate_lesson': {
-        const { subject, grade, topic, language } = item.payload as {
-          subject:  Subject;
-          grade:    Grade;
-          topic:    string;
-          language: Language;
+      case 'replace_question': {
+        const { lessonId, questionIndex, subject, grade, topic, difficulty } = item.payload as {
+          lessonId:      number;
+          questionIndex: number;
+          subject:      Subject;
+          grade:        Grade;
+          topic:       string;
+          difficulty:   1 | 2 | 3;
         };
-        const lesson = await generateLesson(subject, grade, topic, language);
+        const newQuestion = await replaceQuestion(subject, grade, topic, difficulty);
+        await replaceQuestionInLesson(lessonId, questionIndex, newQuestion);
+        return true;
+      }
+
+      case 'generate_lesson': {
+        const { subject, grade, topic } = item.payload as {
+          subject: Subject;
+          grade:   Grade;
+          topic:   string;
+        };
+        const lesson = await generateLesson(subject, grade, topic, 'en');
         await saveLesson(lesson);
         return true;
       }
@@ -175,25 +182,18 @@ async function processSyncItem(item: SyncQueueItem): Promise<boolean> {
           scores:   { lessonTitle: string; score: number; subject: Subject }[];
         };
         const report = await generateProgressReport(nickname, scores);
-        await updateProfile(nickname, { lastProgressReport: report } as any);
+        // No more `as any` — lastProgressReport is now on the type
+        await updateProfile(nickname, { lastProgressReport: report });
         return true;
       }
 
       case 'get_feedback': {
-        const { question, studentAnswer, lessonContext, grade, language } = item.payload as {
+        const { question, studentAnswer, grade } = item.payload as {
           question:      string;
           studentAnswer: string;
-          lessonContext: string;
           grade:         Grade;
-          language:      Language;
         };
-        const feedback = await getTutorResponse(
-          `Student answered: "${studentAnswer}" to: ${question}`,
-          lessonContext,
-          grade,
-          language
-        );
-        // Dispatch event so Person 3's quiz screen can display the feedback
+        const feedback = await getWritingFeedback(question, studentAnswer, grade);
         window.dispatchEvent(new CustomEvent('mentor:feedback', {
           detail: { feedback, question }
         }));
@@ -215,16 +215,16 @@ async function processSyncItem(item: SyncQueueItem): Promise<boolean> {
 /**
  * Wraps any action with offline-aware logic.
  * If online: runs the action immediately.
- * If offline: runs the fallback (usually addToSyncQueue) instead.
+ * If offline: runs the fallback (addToSyncQueue) instead.
  *
- * Usage (Person 3 calls this after quiz):
+ * Usage:
  *   await withOfflineSupport(
  *     () => generateProgressReport(nickname, scores),
  *     () => addToSyncQueue('progress_report', { nickname, scores })
  *   );
  */
 export async function withOfflineSupport<T>(
-  onlineAction: () => Promise<T>,
+  onlineAction:    () => Promise<T>,
   offlineFallback: () => Promise<void>
 ): Promise<T | null> {
   if (isOnline()) {

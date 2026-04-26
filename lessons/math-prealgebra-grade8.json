@@ -1,0 +1,79 @@
+{
+  "subject": "math",
+  "grade": 8,
+  "language": "en",
+  "title": "Pre-Algebra Basics",
+  "content": "Pre-algebra uses variables to represent unknown values. A variable is usually a letter like x or y. To solve an equation, keep both sides balanced by doing the same operation to both sides.",
+  "questions": [
+    {
+      "prompt": "What does a variable represent?",
+      "choices": [
+        "A known answer",
+        "An unknown value",
+        "A punctuation mark",
+        "A shape"
+      ],
+      "correctIndex": 1,
+      "hint": "Variables often use letters like x.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
+    },
+    {
+      "prompt": "Solve: x + 5 = 12",
+      "choices": [
+        "5",
+        "7",
+        "12",
+        "17"
+      ],
+      "correctIndex": 1,
+      "hint": "Subtract 5 from both sides.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
+    },
+    {
+      "prompt": "Solve: 3x = 18",
+      "choices": [
+        "3",
+        "6",
+        "15",
+        "21"
+      ],
+      "correctIndex": 1,
+      "hint": "Divide both sides by 3.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
+    },
+    {
+      "prompt": "Which expression means 'five more than a number'?",
+      "choices": [
+        "x - 5",
+        "5x",
+        "x + 5",
+        "x / 5"
+      ],
+      "correctIndex": 2,
+      "hint": "More than means addition.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
+    },
+    {
+      "prompt": "If y - 4 = 10, what is y?",
+      "choices": [
+        "6",
+        "10",
+        "14",
+        "40"
+      ],
+      "correctIndex": 2,
+      "hint": "Add 4 to both sides.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
+    }
+  ]
+}

@@ -4,7 +4,7 @@
 // Import query functions from here instead of touching `db` directly.
 
 import Dexie, { type EntityTable } from 'dexie';
-import type { Lesson, Progress, StudentProfile, SyncQueueItem, Subject, Grade, Language } from './types';
+import type { Lesson, Question, Progress, StudentProfile, SyncQueueItem, Subject, Grade, Language } from './types';
 
 // ── Database Setup ────────────────────────────────────────────────────────────
 
@@ -32,6 +32,28 @@ export { db };
 // ── Lessons ───────────────────────────────────────────────────────────────────
 
 /**
+ * Load all pre-written lesson JSON files into IndexedDB on first launch.
+ * Uses Vite's import.meta.glob to bundle all files in /lessons/ at build time.
+ * Safe to call on every launch — bails out early if already seeded.
+ */
+export async function seedLessons(): Promise<void> {
+  const alreadySeeded = await hasPreloadedLessons();
+  if (alreadySeeded) return;
+
+  // Vite resolves this glob at build time — all JSON files are bundled into the app
+  const modules = import.meta.glob('../lessons/*.json');
+
+  for (const path in modules) {
+    const data = await modules[path]() as { default: Omit<Lesson, 'id'> };
+    await db.lessons.add({
+      ...data.default,
+      createdAt:   new Date().toISOString(),
+      isPreloaded: true,
+    } as Lesson);
+  }
+}
+
+/**
  * Fetch all lessons matching a specific grade, subject, and language.
  * Used by Person 2's lesson screen to load available content offline.
  */
@@ -48,7 +70,24 @@ export async function getLessons(
  * Returns the auto-assigned numeric id of the new record.
  */
 export async function saveLesson(lesson: Omit<Lesson, 'id'>): Promise<number> {
-  return db.lessons.add(lesson as Lesson);
+  const id = await db.lessons.add(lesson as Lesson);
+  return id!;
+}
+
+/**
+ * Replace a specific question in a lesson with a new one.
+ * Called by the sync engine after Gemini generates a replacement.
+ */
+export async function replaceQuestionInLesson(
+  lessonId:      number,
+  questionIndex: number,
+  newQuestion:  Question
+): Promise<void> {
+  const lesson = await db.lessons.get(lessonId);
+  if (!lesson) return;
+
+  lesson.questions[questionIndex] = newQuestion;
+  await db.lessons.update(lessonId, { questions: lesson.questions });
 }
 
 /**
@@ -71,12 +110,57 @@ export async function hasPreloadedLessons(): Promise<boolean> {
 // ── Progress ──────────────────────────────────────────────────────────────────
 
 /**
+ * Mark a single question in a lesson as answered.
+ * Person 3 calls this after every answer in the quiz engine.
+ * Works 100% offline — writes directly to IndexedDB.
+ */
+export async function markQuestionAnswered(
+  lessonId:      number,
+  questionIndex: number,
+  isCorrect:     boolean
+): Promise<void> {
+  const lesson = await db.lessons.get(lessonId);
+  if (!lesson) return;
+
+  // Update the specific question in the array
+  lesson.questions[questionIndex].answered = true;
+  lesson.questions[questionIndex].correct  = isCorrect;
+
+  await db.lessons.update(lessonId, { questions: lesson.questions });
+
+  // Queue Gemini replacement if answered correctly and not at max difficulty
+  const currentQ = lesson.questions[questionIndex];
+  if (isCorrect && currentQ.difficulty < 3) {
+    await addToSyncQueue('replace_question', {
+      lessonId:      lessonId,
+      questionIndex: questionIndex,
+      subject:      lesson.subject,
+      grade:        lesson.grade,
+      topic:       lesson.title,
+      difficulty:  currentQ.difficulty,
+    });
+  }
+
+  // Auto-queue entire new lesson if student aced the whole existing lesson
+  const allCorrect = lesson.questions.every(q => q.answered && q.correct);
+  if (allCorrect) {
+    await addToSyncQueue('generate_lesson', {
+      subject:  lesson.subject,
+      grade:    lesson.grade,
+      language: lesson.language,
+      topic:    lesson.title,
+    });
+  }
+}
+
+/**
  * Save a completed quiz attempt.
  * Called by Person 3's quiz engine immediately after the student finishes.
  * Works 100% offline — data stays local until sync runs.
  */
 export async function saveProgress(progress: Omit<Progress, 'id'>): Promise<number> {
-  return db.progress.add(progress as Progress);
+  const id = await db.progress.add(progress as Progress);
+  return id!;
 }
 
 /**
@@ -118,7 +202,8 @@ export async function getProfile(nickname: string): Promise<StudentProfile | und
 export async function createProfile(
   profile: Omit<StudentProfile, 'id'>
 ): Promise<number> {
-  return db.studentProfile.add(profile as StudentProfile);
+  const id = await db.studentProfile.add(profile as StudentProfile);
+  return id!;
 }
 
 /**
@@ -128,13 +213,38 @@ export async function createProfile(
  *
  * Example: updateProfile('StarCoder99', { totalXP: 450, currentLevel: 3 })
  */
+// FIXED — level is calculated and saved
 export async function updateProfile(
   nickname: string,
   updates: Partial<StudentProfile>
 ): Promise<void> {
   const profile = await getProfile(nickname);
   if (!profile) return;
-  await db.studentProfile.update(profile.id as number, updates);
+
+  const newXP = updates.totalXP ?? profile.totalXP;
+  const newLevel = calculateLevel(newXP);
+
+  await db.studentProfile.update(profile.id as number, {
+    ...updates,
+    currentLevel: newLevel,
+  });
+}
+export function calculateLevel(xp: number): number {
+  if (xp >= 1000) return 5;
+  if (xp >= 700) return 4;
+  if (xp >= 450) return 3;
+  if (xp >= 250) return 2;
+  return 1;
+}
+
+export function calculateStreak(lastActive: string, currentStreak: number): number {
+  const last = new Date(lastActive);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 0) return currentStreak;
+  if (diffDays === 1) return currentStreak + 1;
+  return 1;
 }
 
 // ── Sync Queue ────────────────────────────────────────────────────────────────

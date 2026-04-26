@@ -1,21 +1,14 @@
 // src/gemini.ts
-// All communication with the Google Gemini API lives here.
-// Every function checks navigator.onLine before calling — 
-// callers should queue via addToSyncQueue() if offline.
-
-import type { Lesson, GeminiLessonResponse, Subject, Grade, Language } from './types';
+import type { Lesson, GeminiLessonResponse, Subject, Grade, Language, Question } from './types';
 
 const API_KEY = import.meta.env.VITE_GEMINI_KEY as string;
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+
 // ── Core Fetch ────────────────────────────────────────────────────────────────
 
-/**
- * Base function that sends a prompt to Gemini and returns the text response.
- * All other functions in this file call this one.
- */
 async function callGemini(prompt: string): Promise<string> {
   const res = await fetch(API_URL, {
-    method: 'POST',
+    method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }]
@@ -32,25 +25,22 @@ async function callGemini(prompt: string): Promise<string> {
 
 /**
  * Ask Gemini to generate a full lesson for a given topic.
- * Returns a Lesson object ready to be saved directly into IndexedDB via saveLesson().
- *
- * Example: generateLesson('math', 7, 'solving one-step equations', 'en')
+ * Returns a Lesson object ready to be saved via saveLesson() or bulkSaveLessons().
  */
 export async function generateLesson(
-  subject: Subject,
-  grade: Grade,
-  topic: string,
+  subject:  Subject,
+  grade:    Grade,
+  topic:    string,
   language: Language
 ): Promise<Omit<Lesson, 'id'>> {
-  const lang = language === 'es' ? 'Spanish' : 'English';
 
   const prompt = `
     You are creating educational content for a grade ${grade} student.
     Subject: ${subject === 'ela' ? 'English Language Arts' : 'Math'}
     Topic: "${topic}"
-    Language: ${lang}
+    Language: English
 
-    Respond ONLY with valid JSON in exactly this shape:
+    Respond ONLY with valid JSON in exactly this shape — no explanation, no markdown:
     {
       "title": "short lesson title",
       "content": "2-3 paragraphs of lesson explanation, age-appropriate for grade ${grade}",
@@ -59,23 +49,25 @@ export async function generateLesson(
           "prompt": "question text",
           "choices": ["option A", "option B", "option C", "option D"],
           "correctIndex": 0,
-          "hint": "one sentence hint"
+          "hint": "one sentence hint",
+          "answered": false,
+          "correct": false,
+          "difficulty": 1
         }
       ]
     }
 
     Rules:
     - Write exactly 5 questions
+    - Every question MUST include answered: false, correct: false, difficulty: 1
     - Keep language simple and engaging for middle school
     - correctIndex must be 0, 1, 2, or 3
-    - Do not include any text outside the JSON
+    - Do not include any text outside the JSON object
   `;
 
-  const raw = await callGemini(prompt);
-
-  // Strip markdown code fences if Gemini wraps the JSON in them
+  const raw     = await callGemini(prompt);
   const cleaned = raw.replace(/```json|```/g, '').trim();
-  const parsed = JSON.parse(cleaned) as GeminiLessonResponse;
+  const parsed  = JSON.parse(cleaned) as GeminiLessonResponse;
 
   return {
     subject,
@@ -89,30 +81,67 @@ export async function generateLesson(
   };
 }
 
-// ── AI Tutor ──────────────────────────────────────────────────────────────────
+// ── Question Replacement ────────────────────────────────────────────────────────
 
 /**
- * Get a tutor response from Gemini for a student's question.
+ * Ask Gemini to generate a single harder replacement question for a lesson.
+ * Only called when a student answers a question correctly.
+ */
+export async function replaceQuestion(
+  subject:  Subject,
+  grade:    Grade,
+  topic:    string,
+  currentDifficulty: 1 | 2 | 3
+): Promise<Question> {
+  const nextDifficulty = Math.min(currentDifficulty + 1, 3) as 1 | 2 | 3;
+
+  const prompt = `
+    You are creating a grade ${grade} ${subject === 'ela' ? 'English Language Arts' : 'Math'} question.
+    Topic: "${topic}"
+    Current difficulty: ${currentDifficulty}
+    New difficulty level: ${nextDifficulty} (1=easy, 2=medium, 3=hard)
+
+    Respond ONLY with valid JSON in exactly this shape — no explanation, no markdown:
+    {
+      "prompt": "question text",
+      "choices": ["option A", "option B", "option C", "option D"],
+      "correctIndex": 0,
+      "hint": "one sentence hint",
+      "answered": false,
+      "correct": false,
+      "difficulty": ${nextDifficulty}
+    }
+
+    Rules:
+    - Make this harder than difficulty ${currentDifficulty} but still solvable for grade ${grade}
+    - Keep language appropriate for middle school students
+    - correctIndex must be 0, 1, 2, or 3
+    - Do NOT include any text outside the JSON object
+  `;
+
+  const raw     = await callGemini(prompt);
+  const cleaned = raw.replace(/```json|```/g, '').trim();
+  const parsed  = JSON.parse(cleaned) as Question;
+
+  return parsed;
+}
+
+/**
+ * Get a tutor response for a student's live question.
  * Called by Person 2's lesson screen chat box.
- * Returns a friendly offline message if the device has no internet.
+ * Returns an offline message immediately if no internet — never queued.
  */
 export async function getTutorResponse(
   studentQuestion: string,
-  lessonContext: string,
-  grade: Grade,
-  language: Language
+  lessonContext:   string,
+  grade:           Grade
 ): Promise<string> {
   if (!navigator.onLine) {
-    return language === 'es'
-      ? 'Sin conexión ahora mismo. ¡Intenta de nuevo cuando tengas internet! 🔌'
-      : 'No internet right now — ask me again when you\'re connected! 🔌';
+    return "No internet right now — ask me again when you're connected! 🔌";
   }
-
-  const lang = language === 'es' ? 'Spanish' : 'English';
 
   const prompt = `
     You are MentorAI, a helpful and encouraging tutor for a grade ${grade} student.
-    Respond in ${lang}.
     Current lesson context: ${lessonContext}
     Student question: "${studentQuestion}"
 
@@ -129,15 +158,12 @@ export async function getTutorResponse(
 // ── Progress Report ───────────────────────────────────────────────────────────
 
 /**
- * Ask Gemini to write a plain-English progress report for a teacher or parent.
- * Called by utils/offline.ts sync engine when the device reconnects.
- *
- * @param nickname   - Student's chosen nickname
- * @param scores     - Array of recent quiz results with lesson title and score
+ * Generates a plain-English progress report for a teacher or parent.
+ * Called by the sync engine in offline.ts when the device reconnects.
  */
 export async function generateProgressReport(
   nickname: string,
-  scores: { lessonTitle: string; score: number; subject: Subject }[]
+  scores:   { lessonTitle: string; score: number; subject: Subject }[]
 ): Promise<string> {
   const scoreList = scores
     .map(s => `- ${s.lessonTitle} (${s.subject}): ${s.score}%`)
@@ -164,25 +190,20 @@ export async function generateProgressReport(
 // ── Writing Feedback ──────────────────────────────────────────────────────────
 
 /**
- * Get Gemini to review a student's short written answer.
- * Called by Person 3's quiz engine for open-ended ELA questions.
+ * Reviews a student's short written answer for an ELA question.
+ * Called by the sync engine in offline.ts — queued when offline, fired on reconnect.
  */
 export async function getWritingFeedback(
-  question: string,
+  question:      string,
   studentAnswer: string,
-  grade: Grade,
-  language: Language
+  grade:         Grade
 ): Promise<string> {
   if (!navigator.onLine) {
-    return language === 'es'
-      ? '¡Sin conexión! Tu respuesta fue guardada. 📝'
-      : 'Offline! Your answer was saved — feedback coming when you reconnect. 📝';
+    return "Offline! Your answer was saved — feedback coming when you reconnect. 📝";
   }
 
-  const lang = language === 'es' ? 'Spanish' : 'English';
-
   const prompt = `
-    You are reviewing a grade ${grade} student's written answer. Respond in ${lang}.
+    You are reviewing a grade ${grade} student's written answer.
     Question: "${question}"
     Student's answer: "${studentAnswer}"
 
