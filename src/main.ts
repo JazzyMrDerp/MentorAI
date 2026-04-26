@@ -1,122 +1,82 @@
 // src/main.ts
 import './style.css';
 import { seedLessons, getLessons, createProfile } from './db';
-import { renderOnboarding, state as onboardingState } from './screens/onboarding.ts';
-import { renderDashboard } from './screens/dashboard.ts';
-import { renderSidebar } from './compenents/sidebar.ts';
-import type { StudentProfile, Lesson, Grade, Language, Subject } from './types';
+import { initOfflineSync } from '../utils/offline';
+import { preloadLessons } from './preload';
+import { createRouter } from './router';
+import { renderOnboarding, state as onboardingState } from './screens/onboarding';
+import type { StudentProfile, Grade, Language } from './types';
 
-// ── App state ─────────────────────────────────────────────────────────
-
-type Page = 'dashboard' | 'onboarding' | 'lesson';
-
-let currentPage: Page = 'onboarding';
-let currentSubject: Subject = 'math';
 let app: HTMLElement;
-let profile: StudentProfile | null = null;
-let lessons: Lesson[] = [];
-
-// ── App boot ──────────────────────────────────────────────────────────────────
 
 async function init(): Promise<void> {
-  app = document.querySelector('#app')!;
-  
+  app = document.getElementById('app')!;
+
   await seedLessons();
-  
-  // Always start with onboarding for now
-  currentPage = 'onboarding';
-  profile = null;
-  
-  console.log('[MentorAI] Boot complete');
-  render();
+  initOfflineSync();
+
+  // Show onboarding first — no profile yet
+  const onboardingEl = renderOnboarding();
+  app.innerHTML = '';
+  app.appendChild(onboardingEl);
+
   setupOnboardingHandlers();
 }
 
-function render(): void {
-  app.innerHTML = '';
-  const isOnline = navigator.onLine;
-  
-  if (currentPage !== 'dashboard') {
-    const onboarding = renderOnboarding();
-    app.appendChild(onboarding);
-    return;
-  }
-  
-  // Dashboard with sidebar
-  const layout = document.createElement('div');
-  layout.className = 'app-layout';
-  
-  const sidebar = renderSidebar({
-    profile,
-    currentPage: currentPage,
-    isOnline,
-    onNavigate: async (page) => {
-      console.log('Navigate to:', page);
-      currentSubject = page === 'ela' ? 'ela' : 'math';
-      if (currentSubject === 'ela') {
-        lessons = await getLessons(profile!.grade, 'ela', 'en');
-      } else {
-        lessons = await getLessons(profile!.grade, 'math', 'en');
-      }
-      render();
-    }
-  });
-  
-  const mainContent = renderDashboard({
-    profile,
-    lessons,
-    isOnline,
-    onOpenLesson: (subject) => {
-      console.log('Open lesson:', subject);
-      currentSubject = subject;
-    }
-  });
-  
-  layout.appendChild(sidebar);
-  layout.appendChild(mainContent);
-  app.appendChild(layout);
-}
-
 function setupOnboardingHandlers(): void {
-  // Wait for DOM to be ready
   setTimeout(() => {
-    const nicknameInput = document.getElementById('nickname-input');
     const startBtn = document.getElementById('start-btn');
-    
-    if (!startBtn || !nicknameInput) {
-      console.log('Elements not found, retrying...');
-      setTimeout(setupOnboardingHandlers, 200);
-      return;
-    }
-    
-    console.log('Setting up onboarding handlers');
-    
+    if (!startBtn) { setTimeout(setupOnboardingHandlers, 200); return; }
+
     startBtn.addEventListener('click', async () => {
-      console.log('Start button clicked');
-      
-      if (!onboardingState.nickname || !onboardingState.grade) {
-        console.log('Missing nickname or grade');
-        return;
-      }
-      
+      if (!onboardingState.nickname || !onboardingState.grade) return;
+
       const newProfile: Omit<StudentProfile, 'id'> = {
-        nickname: onboardingState.nickname,
-        grade: onboardingState.grade as Grade,
-        language: 'en' as Language,
-        totalXP: 0,
-        mathXP: 0,
-        elaXP: 0,
+        nickname:     onboardingState.nickname,
+        grade:        onboardingState.grade as Grade,
+        language:     'en' as Language,
+        totalXP:      0,
+        mathXP:       0,
+        elaXP:        0,
         currentLevel: 1,
-        streak: 0,
-        lastActive: new Date().toISOString(),
+        streak:       0,
+        lastActive:   new Date().toISOString(),
       };
-      
+
       await createProfile(newProfile);
-      profile = { ...newProfile, id: 1 } as StudentProfile;
-      
-      lessons = await getLessons(profile.grade, 'math', 'en');
-      currentPage = 'dashboard';
-      render();
+      const profile = newProfile as StudentProfile;
+      const lessons = await getLessons(profile.grade, 'math', 'en');
+
+      // Hand off to router — it owns everything from here
+      const router = createRouter({
+        root: app,
+        snapshot: {
+          state: { profile, currentLesson: null, isOnline: navigator.onLine },
+          lessons,
+        },
+        onCreateProfile: async (input) => {
+          const lessons = await getLessons(input.grade, 'math', 'en');
+          return {
+            state: { profile: { ...input, totalXP: 0, mathXP: 0, elaXP: 0,
+              currentLevel: 1, streak: 0, lastActive: new Date().toISOString() },
+              currentLesson: null, isOnline: navigator.onLine },
+            lessons,
+          };
+        },
+        onSetLanguage: async () => ({
+          state: { profile, currentLesson: null, isOnline: navigator.onLine },
+          lessons,
+        }),
+      });
+
+      await router.mount();
+
+      // Register online/offline updates
+      window.addEventListener('online',  () => router.setOnlineStatus(true));
+      window.addEventListener('offline', () => router.setOnlineStatus(false));
+
+      // Start Gemini preload in background
+      preloadLessons().catch(console.error);
     });
   }, 100);
 }

@@ -1,4 +1,5 @@
 import type { Lesson, StudentProfile, Subject } from '../types.ts';
+import { renderSidebar } from '../components/sidebar.ts';
 
 interface DashboardOptions {
   profile: StudentProfile | null;
