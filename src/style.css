@@ -1,6 +1,8 @@
 /* ── Reset & Base ────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&display=swap');
+
 :root {
   /* Brand Colors */
   --primary:        #6C63FF;
@@ -8,17 +10,18 @@
   --primary-light:  #EEEDFF;
   --teal:           #48D1CC;
   --teal-hover:     #3AB8B3;
-  --teal-light:     #E0F7F4;
+  --teal-light:     #E0F7F6;
 
-  /* Neutrals */
+  /* Neutrals - Light Theme per Figma */
   --bg:             #F7F8FC;
-  --bg-gradient:    linear-gradient(135deg, #F7F8FC 0%, #F4F2FF 100%);
+  --bg-gradient:    linear-gradient(135deg, #F7F8FC 0%, #EDE9FE 100%);
   --surface:        #FFFFFF;
-  --border:         #E6E3FF;
-  --border-light:   #F0EEFF;
-  --text-1:         #19133A;
-  --text-2:         #4A456B;
-  --text-3:         #9B95C9;
+  --surface-glass: rgba(255,255,255,0.7);
+  --border:         rgba(0,0,0,0.08);
+  --border-light:  rgba(0,0,0,0.04);
+  --text-1:         #1A1A2E;
+  --text-2:         #4B5563;
+  --text-3:         #6B7280;
 
   /* Semantic */
   --gold:           #FFD700;
@@ -29,18 +32,20 @@
   --red-light:      #FEF2F2;
 
   /* Layout */
-  --sidebar-w:      230px;
-  --radius-sm:      12px;
+  --sidebar-w:      240px;
+  --radius-sm:      14px;
   --radius:         18px;
   --radius-lg:      24px;
-  --shadow:         0 2px 12px rgba(108,99,255,0.08);
-  --shadow-lg:      0 8px 32px rgba(108,99,255,0.12);
+  --shadow:         0 8px 24px rgba(0,0,0,0.05);
+  --shadow-lg:      0 12px 40px rgba(108,99,255,0.12);
+  --shadow-button:   0 4px 16px rgba(108,99,255,0.25);
 
   /* Typography */
   --font-display:   'Poppins', sans-serif;
   --font-body:      'Inter', sans-serif;
 }
 
+/* Premium Background */
 html, body {
   height: 100%;
   margin: 0;
@@ -51,6 +56,7 @@ html, body {
   font-size: 15px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
 }
 
 #app { 
@@ -70,31 +76,33 @@ button { font-family: var(--font-body); }
 .main-content {
   flex: 1;
   margin-left: var(--sidebar-w);
-  padding: 40px 24px;
+  padding: 40px;
   overflow-y: auto;
   min-height: 100vh;
 }
 
-/* Page center wrapper to constrain and center content */
+/* Page center wrapper - centered with max-width per Figma */
 .page-center {
   width: 100%;
-  max-width: 1100px;
+  max-width: 1150px;
   margin: 0 auto;
 }
 
 /* ── Sidebar ─────────────────────────────────────────────────────────────── */
 .sidebar {
   position: fixed;
-  top: 0; left: 0;
+  top: 0;
+  left: 0;
   width: var(--sidebar-w);
   height: 100vh;
-  background: var(--surface);
-  border-right: 1px solid var(--border-light);
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   z-index: 100;
-  box-shadow: var(--shadow);
-  cursor: default;
+  box-shadow: 2px 0 12px rgba(0,0,0,0.04);
 }
 
 .sidebar-nav {
@@ -110,18 +118,19 @@ button { font-family: var(--font-body); }
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  border-radius: 12px;
   color: var(--text-2);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   border: none;
-  background: none;
+  background: transparent;
   width: 100%;
   text-align: left;
   transition: all 0.15s ease;
   pointer-events: auto;
+  margin: 2px 8px;
 }
 
 .nav-item:hover {
@@ -130,9 +139,8 @@ button { font-family: var(--font-body); }
 }
 
 .nav-item.active {
-  background: rgba(108,99,255,0.1);
-  border-left: 3px solid var(--primary);
-  color: var(--primary);
+  background: var(--primary);
+  color: white;
   font-weight: 600;
 }
 
@@ -168,35 +176,6 @@ button { font-family: var(--font-body); }
   flex-direction: column;
   gap: 2px;
   overflow-y: auto;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
-  color: var(--text-2);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  border: none;
-  background: none;
-  width: 100%;
-  text-align: left;
-  transition: all 0.15s ease;
-}
-
-.nav-item:hover {
-  background: rgba(108,99,255,0.1);
-  color: var(--primary);
-}
-
-.nav-item.active {
-  background: rgba(108,99,255,0.1);
-  border-left: 3px solid var(--primary);
-  color: var(--primary);
-  font-weight: 600;
 }
 
 .nav-icon {
@@ -475,31 +454,40 @@ button { font-family: var(--font-body); }
 }
 
 .stat-card {
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: var(--surface-glass);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border);
   border-radius: 20px;
   padding: 24px 28px;
   display: flex;
   align-items: center;
   gap: 16px;
+  box-shadow: var(--shadow);
+  transition: all 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
 }
 
 .stat-icon {
-  width: 40px; height: 40px;
-  border-radius: 10px;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 19px;
+  font-size: 22px;
   flex-shrink: 0;
+  background: var(--primary);
+  color: white;
 }
 
-.stat-icon.gold   { background: #FEF3C7; }
-.stat-icon.orange { background: #FFEDD5; }
-.stat-icon.teal   { background: var(--teal-light); }
+.stat-icon.gold   { background: var(--gold); }
+.stat-icon.orange { background: var(--orange); }
+.stat-icon.teal   { background: var(--teal); }
 
 .stat-label {
   font-size: 10.5px;
@@ -560,15 +548,16 @@ button { font-family: var(--font-body); }
 .level-xp-label { font-size: 12px; color: var(--text-3); }
 
 .level-bar-track {
-  height: 8px;
+  height: 12px;
   background: var(--border);
   border-radius: 100px;
   overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
 }
 
 .level-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--primary), #A78BFA);
+  background: var(--primary);
   border-radius: 100px;
   transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -589,36 +578,41 @@ button { font-family: var(--font-body); }
 }
 
 .continue-card {
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: var(--surface-glass);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border);
   border-radius: 20px;
   padding: 28px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow);
 }
 
 .continue-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(108,99,255,0.2);
+  box-shadow: var(--shadow-lg);
+}
+
+.continue-card[data-subject="ela"]:hover {
+  box-shadow: 0 12px 32px rgba(72,209,204,0.15);
 }
 
 .continue-card-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .continue-icon {
-  width: 38px; height: 38px;
-  border-radius: 10px;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 22px;
 }
 
 .continue-icon.math { background: var(--primary-light); }
@@ -656,9 +650,9 @@ button { font-family: var(--font-body); }
 .btn-continue-math,
 .btn-continue-ela {
   width: 100%;
-  padding: 12px 16px;
+  padding: 14px 20px;
   border: none;
-  border-radius: 16px;
+  border-radius: 14px;
   font-family: var(--font-body);
   font-size: 14px;
   font-weight: 600;
@@ -666,26 +660,26 @@ button { font-family: var(--font-body); }
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   transition: all 0.2s ease;
 }
 
 .btn-continue-math { 
-  background: linear-gradient(135deg, var(--primary), #8b5cf6); 
+  background: var(--primary);
   color: white; 
 }
 .btn-continue-math:hover { 
-  transform: scale(1.02);
-  box-shadow: 0 4px 20px rgba(108,99,255,0.4);
+  background: var(--primary-hover);
+  box-shadow: var(--shadow-button);
 }
 
-.btn-continue-ela { 
-  background: linear-gradient(135deg, var(--teal), #5EEAD4); 
+.btn-continue-ela {
+  background: var(--gradient-teal);
   color: white; 
 }
 .btn-continue-ela:hover { 
   transform: scale(1.02);
-  box-shadow: 0 4px 20px rgba(72,209,204,0.4);
+  box-shadow: 0 0 24px rgba(72,209,204,0.5);
 }
 
 /* ── Subject / Lesson List ───────────────────────────────────────────────── */
@@ -1545,10 +1539,19 @@ button { font-family: var(--font-body); }
 
 .lesson-card {
   padding: 24px;
-  background: var(--surface);
-  border-radius: 20px;
-  border: 1px solid var(--border-light);
+  background: var(--surface-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
   box-shadow: var(--shadow);
+  transition: all 0.2s ease;
+}
+
+.lesson-card:hover {
+  transform: translateX(4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--primary);
 }
 
 .lesson-card-title {
@@ -1572,17 +1575,28 @@ button { font-family: var(--font-body); }
 
 .btn-start-lesson {
   width: 100%;
-  padding: 0.5rem;
+  padding: 12px 20px;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: 14px;
   background: var(--primary);
   color: white;
   font-weight: 600;
+  font-size: 14px;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .btn-start-lesson:hover {
   background: var(--primary-hover);
+  box-shadow: var(--shadow-button);
+}
+
+.btn-start-lesson.ela {
+  background: var(--teal);
+}
+
+.btn-start-lesson.ela:hover {
+  box-shadow: 0 0 20px rgba(72,209,204,0.5);
 }
 
 .empty-state {
@@ -1612,9 +1626,9 @@ button { font-family: var(--font-body); }
 }
 
 .btn-boss {
-  padding: 0.75rem 1.5rem;
+  padding: 16px 32px;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
   background: linear-gradient(135deg, var(--primary), #8b5cf6);
   color: white;
   font-weight: 600;
