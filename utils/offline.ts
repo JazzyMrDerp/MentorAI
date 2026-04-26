@@ -13,7 +13,7 @@ import {
   generateProgressReport,
   getWritingFeedback,
 } from '../src/gemini';
-import type { SyncQueueItem, Subject, Grade, Question } from '../src/types';
+import type { SyncQueueItem, Subject, Grade } from '../src/types';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
