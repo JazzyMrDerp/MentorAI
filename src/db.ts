@@ -32,6 +32,28 @@ export { db };
 // ── Lessons ───────────────────────────────────────────────────────────────────
 
 /**
+ * Load all pre-written lesson JSON files into IndexedDB on first launch.
+ * Uses Vite's import.meta.glob to bundle all files in /lessons/ at build time.
+ * Safe to call on every launch — bails out early if already seeded.
+ */
+export async function seedLessons(): Promise<void> {
+  const alreadySeeded = await hasPreloadedLessons();
+  if (alreadySeeded) return;
+
+  // Vite resolves this glob at build time — all JSON files are bundled into the app
+  const modules = import.meta.glob('../lessons/*.json');
+
+  for (const path in modules) {
+    const data = await modules[path]() as { default: Omit<Lesson, 'id'> };
+    await db.lessons.add({
+      ...data.default,
+      createdAt:   new Date().toISOString(),
+      isPreloaded: true,
+    } as Lesson);
+  }
+}
+
+/**
  * Fetch all lessons matching a specific grade, subject, and language.
  * Used by Person 2's lesson screen to load available content offline.
  */
@@ -48,7 +70,8 @@ export async function getLessons(
  * Returns the auto-assigned numeric id of the new record.
  */
 export async function saveLesson(lesson: Omit<Lesson, 'id'>): Promise<number> {
-  return db.lessons.add(lesson as Lesson);
+  const id = await db.lessons.add(lesson as Lesson);
+  return id!;
 }
 
 /**
@@ -71,12 +94,44 @@ export async function hasPreloadedLessons(): Promise<boolean> {
 // ── Progress ──────────────────────────────────────────────────────────────────
 
 /**
+ * Mark a single question in a lesson as answered.
+ * Person 3 calls this after every answer in the quiz engine.
+ * Works 100% offline — writes directly to IndexedDB.
+ */
+export async function markQuestionAnswered(
+  lessonId:      number,
+  questionIndex: number,
+  isCorrect:     boolean
+): Promise<void> {
+  const lesson = await db.lessons.get(lessonId);
+  if (!lesson) return;
+
+  // Update the specific question in the array
+  lesson.questions[questionIndex].answered = true;
+  lesson.questions[questionIndex].correct  = isCorrect;
+
+  await db.lessons.update(lessonId, { questions: lesson.questions });
+
+  // Auto-queue Gemini replacement if student aced the whole lesson
+  const allCorrect = lesson.questions.every(q => q.answered && q.correct);
+  if (allCorrect) {
+    await addToSyncQueue('generate_lesson', {
+      subject:  lesson.subject,
+      grade:    lesson.grade,
+      language: lesson.language,
+      topic:    lesson.title,        // Gemini uses this to make a harder follow-up
+    });
+  }
+}
+
+/**
  * Save a completed quiz attempt.
  * Called by Person 3's quiz engine immediately after the student finishes.
  * Works 100% offline — data stays local until sync runs.
  */
 export async function saveProgress(progress: Omit<Progress, 'id'>): Promise<number> {
-  return db.progress.add(progress as Progress);
+  const id = await db.progress.add(progress as Progress);
+  return id!;
 }
 
 /**
@@ -118,7 +173,8 @@ export async function getProfile(nickname: string): Promise<StudentProfile | und
 export async function createProfile(
   profile: Omit<StudentProfile, 'id'>
 ): Promise<number> {
-  return db.studentProfile.add(profile as StudentProfile);
+  const id = await db.studentProfile.add(profile as StudentProfile);
+  return id!;
 }
 
 /**
