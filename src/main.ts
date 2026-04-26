@@ -130,14 +130,34 @@ onSelectLesson: (lessonId) => {
     if (subjectLessons.length > 0) {
       const bossState = currentBoss || startBossBattle(subjectLessons, currentSubject);
       if (!currentBoss) currentBoss = bossState;
+      const currentProfile = profile;
       
-      const handleBossNext = () => {
+      const handleBossNext = async () => {
         const defeated = isBossDefeated();
-        // If boss is defeated, show victory screen
         if (defeated) {
           const bossScore = calculateBossScore();
           const answered = bossState.answers.length;
           const bossXP = calculateBossXP(bossScore, answered);
+          // Save boss progress
+          if (currentProfile) {
+            await saveProgress({
+              nickname: currentProfile.nickname,
+              lessonId: 99999,
+              lessonTitle: `${currentSubject} Boss Battle`,
+              subject: currentSubject as Subject,
+              score: bossScore,
+              xpEarned: bossXP,
+              attempts: answered,
+              hintsUsed: bossState.hintsUsed,
+              completedAt: new Date().toISOString(),
+            });
+            currentProfile.totalXP += bossXP;
+            if (currentSubject === 'math') {
+              currentProfile.mathXP = (currentProfile.mathXP ?? 0) + bossXP;
+            } else {
+              currentProfile.elaXP = (currentProfile.elaXP ?? 0) + bossXP;
+            }
+          }
           app.innerHTML = '';
           app.appendChild(
             renderBossSummary(bossScore, bossXP, bossState.hintsUsed, answered, () => {
@@ -148,15 +168,32 @@ onSelectLesson: (lessonId) => {
           );
           return;
         }
-        // Otherwise, move to next question
         const moved = goToNextBossQuestion();
         if (moved) {
           render();
         } else {
-          // Time ran out or no more questions
           const bossScore = calculateBossScore();
           const answered = bossState.answers.length;
           const bossXP = calculateBossXP(bossScore, answered);
+          if (currentProfile) {
+            await saveProgress({
+              nickname: currentProfile.nickname,
+              lessonId: 99999,
+              lessonTitle: `${currentSubject} Boss Battle`,
+              subject: currentSubject as Subject,
+              score: bossScore,
+              xpEarned: bossXP,
+              attempts: answered,
+              hintsUsed: bossState.hintsUsed,
+              completedAt: new Date().toISOString(),
+            });
+            currentProfile.totalXP += bossXP;
+            if (currentSubject === 'math') {
+              currentProfile.mathXP = (currentProfile.mathXP ?? 0) + bossXP;
+            } else {
+              currentProfile.elaXP = (currentProfile.elaXP ?? 0) + bossXP;
+            }
+          }
           app.innerHTML = '';
           app.appendChild(
             renderBossSummary(bossScore, bossXP, bossState.hintsUsed, answered, () => {
@@ -202,7 +239,7 @@ onSelectLesson: (lessonId) => {
         currentQuiz = await startQuiz(selectedLesson, { hintsRemaining: 3 });
       }
       
-      const handleNext = () => {
+      const handleNext = async () => {
         const moved = goToNextQuestion();
         if (moved) {
           currentQuiz = getQuizProgress();
@@ -212,6 +249,7 @@ onSelectLesson: (lessonId) => {
           if (quizState) {
             const score = calculateScore();
             const xpEarned = calculateXP(score);
+            await saveProgressRecord(selectedLesson, score, xpEarned, quizState.hintsUsed);
             submitQuiz(profile!.nickname, selectedLesson.title, currentSubject);
             currentQuiz = null;
             app.innerHTML = '';
