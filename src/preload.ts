@@ -1,57 +1,70 @@
-// src/preload.ts
-// Runs once on first app launch when online.
-// Loads lessons from local JSON files and stores them in IndexedDB.
-
-import { hasPreloadedLessons, bulkSaveLessons } from './db';
+import { bulkSaveLessons, hasPreloadedLessons, seedLessons } from './db';
+import { generateLesson } from './gemini';
+import { db } from './db';
 import type { Lesson, Subject, Grade, Language } from './types';
 
-const LESSON_FILES = [
-  'ela-context-clues-grade6.json',
-  'ela-essay-structure-grade8.json',
-  'ela-figurative-language-grade8.json',
-  'ela-main-idea-grade6.json',
-  'ela-summarizing-grade7.json',
-  'math-decimals-grade6.json',
-  'math-fractions-grade7.json',
-  'math-geometry-grade7.json',
-  'math-prealgebra-grade8.json',
-  'math-word-problems-grade8.json',
-];
+const BUNDLED_LESSON_COUNT = 10;
+const CALL_DELAY_MS = 600;
 
-async function loadLessonFromFile(filename: string): Promise<Omit<Lesson, 'id'> | null> {
-  try {
-    const res = await fetch(`/lessons/${filename}`);
-    if (!res.ok) return null;
-    const data = await res.json();
-    return {
-      ...data,
-      createdAt: new Date().toISOString(),
-      isPreloaded: true,
-    };
-  } catch (err) {
-    console.error(`Failed to load ${filename}:`, err);
-    return null;
-  }
-}
+const GEMINI_TOPICS: { subject: Subject; grade: Grade; topic: string; language: Language }[] = [
+  { subject: 'math', grade: 6, topic: 'multiplying and dividing fractions', language: 'en' },
+  { subject: 'math', grade: 7, topic: 'solving two-step equations', language: 'en' },
+  { subject: 'math', grade: 7, topic: 'inequalities and number lines', language: 'en' },
+  { subject: 'math', grade: 8, topic: 'the Pythagorean theorem', language: 'en' },
+  { subject: 'math', grade: 8, topic: 'systems of equations', language: 'en' },
+  { subject: 'ela',  grade: 6, topic: 'comparing and contrasting texts', language: 'en' },
+  { subject: 'ela',  grade: 6, topic: 'context clues and vocabulary', language: 'en' },
+  { subject: 'ela',  grade: 7, topic: 'point of view and author purpose', language: 'en' },
+  { subject: 'ela',  grade: 7, topic: 'text structure and organization', language: 'en' },
+  { subject: 'ela',  grade: 8, topic: 'evaluating evidence in arguments', language: 'en' },
+];
 
 export async function preloadLessons(
   onProgress?: (current: number, total: number) => void
 ): Promise<void> {
-  if (await hasPreloadedLessons()) return;
+  const existingCount = await db.lessons.count();
+  if (existingCount > BUNDLED_LESSON_COUNT) {
+    console.log('[Preload] Gemini lessons already exist — skipping.');
+    return;
+  }
 
-  const total = LESSON_FILES.length;
-  const lessons: Omit<Lesson, 'id'>[] = [];
+  if (!navigator.onLine) {
+    console.log('[Preload] Offline — skipping Gemini preload. Bundled lessons available.');
+    return;
+  }
+
+  const total = GEMINI_TOPICS.length;
+  const generated: Omit<Lesson, 'id'>[] = [];
+
+  console.log(`[Preload] Generating ${total} Gemini lessons...`);
 
   for (let i = 0; i < total; i++) {
-    const lesson = await loadLessonFromFile(LESSON_FILES[i]);
-    if (lesson) {
-      lessons.push(lesson);
+    const { subject, grade, topic, language } = GEMINI_TOPICS[i];
+
+    if (!navigator.onLine) {
+      console.warn('[Preload] Lost connection mid-preload — saving partial results.');
+      break;
     }
-    onProgress?.(i + 1, total);
+
+    try {
+      const lesson = await generateLesson(subject, grade, topic, language);
+      generated.push({ ...lesson, isPreloaded: true });
+      onProgress?.(i + 1, total);
+      console.log(`[Preload] ✓ "${topic}"`);
+    } catch (err) {
+      console.error(`[Preload] ✗ Failed "${topic}":`, err);
+      onProgress?.(i + 1, total);
+    }
+
+    if (i < total - 1) await delay(CALL_DELAY_MS);
   }
 
-  if (lessons.length > 0) {
-    await bulkSaveLessons(lessons);
-    console.log(`[Preload] Saved ${lessons.length} lessons to local database.`);
+  if (generated.length > 0) {
+    await bulkSaveLessons(generated);
+    console.log(`[Preload] Saved ${generated.length}/${total} Gemini lessons to DB.`);
   }
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }

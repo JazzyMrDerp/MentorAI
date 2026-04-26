@@ -256,7 +256,14 @@ export function renderDashboardScreen(options: DashboardScreenOptions): {
     </section>
   `;
 
-  createIcons({ icons, root: screen });
+screen.querySelectorAll('[data-lucide]').forEach((el) => {
+  const name = el.getAttribute('data-lucide') as string;
+  if (icons[name as keyof typeof icons]) {
+    const iconNode = icons[name as keyof typeof icons];
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    el.replaceWith(svg);
+  }
+});
 
   const profileForm = screen.querySelector<HTMLFormElement>('[data-profile-form]');
   if (profileForm) {
