@@ -860,3 +860,73 @@ body {
   color: #22c55e;
   font-size: 0.85rem;
 }
+
+/* Boss Mode Styles */
+.boss-screen {
+  padding: 1.5rem;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0D0D1A 0%, #1a0a0a 100%);
+  color: #ffffff;
+}
+
+.boss-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.boss-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ef4444;
+  text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+}
+
+.boss-progress {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  background: #1E1E2E;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+}
+
+.boss-timer-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: #1E1E2E;
+  border-radius: 12px;
+  border: 2px solid #ef4444;
+}
+
+.timer-label {
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.timer-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  font-family: monospace;
+}
+
+.timer-value.danger {
+  color: #ef4444;
+  animation: pulse 0.5s infinite;
+}
+
+.dot-quiz.missed {
+  background: #ef4444;
+}
+
+.missed-lesson {
+  color: #f59e0b;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}

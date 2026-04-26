@@ -61,6 +61,14 @@ export async function getLesson(id: number): Promise<Lesson | undefined> {
 }
 
 /**
+ * Fetch all lessons for a subject.
+ * Used by Boss Mode to get questions for a subject.
+ */
+export async function getLessonsBySubject(subject: Subject): Promise<Lesson[]> {
+  return db.lessons.where('subject').equals(subject).toArray();
+}
+
+/**
  * Fetch all lessons matching a specific grade, subject, and language.
  * Used by Person 2's lesson screen to load available content offline.
  */
