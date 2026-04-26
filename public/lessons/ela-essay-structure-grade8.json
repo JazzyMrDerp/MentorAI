@@ -1,0 +1,40 @@
+{
+  "subject": "ela",
+  "grade": 8,
+  "language": "en",
+  "title": "Essay Structure: Introduction, Body, Conclusion",
+  "topic": "essay",
+  "content": "Essay Structure\n\nEvery well-written essay has three main parts: an Introduction, Body Paragraphs, and a Conclusion. Think of it like a sandwich — intro and conclusion are the bread, and the body is the filling!\n\nThe Introduction\n\nThe introduction catches your reader's attention and tells them what your essay will be about. It should include:\n\n1. A hook — something interesting to start with (a question, surprising fact, or quote)\n2. Background information — what readers need to know\n3. Thesis statement — your main argument or point in one sentence\n\nExample:\n\"Can you imagine learning about the world from a tiny seed? Gardening teaches patience (hook), demonstrates responsibility (background), and connects us to nature (thesis).\"\n\nThe Body Paragraphs\n\nBody paragraphs develop your main idea. Each paragraph should:\n\n1. Have a topic sentence — the main idea of that paragraph\n2. Include evidence — facts, examples, or quotes that support it\n3. Have explanation — tell why this evidence matters\n\nStructure: \"TEEC\"\n• Topic sentence\n• Evidence\n• Explanation\n• Conclusion (of the paragraph)\n\nThe Conclusion\n\nThe conclusion wraps up your essay. It should:\n\n1. Restate your thesis in new words\n2. Summarize your main points\n3. End with a thought or call to action\n\nExample:\n\"In conclusion, gardening teaches valuable life skills. As we've seen, it builds patience, responsibility, and connection to nature. These skills will help students throughout their lives.\"\n\nEssay Writing Tips\n\n• Start with an outline to organize your ideas\n• Each paragraph should focus on ONE main idea\n• Use transitions between paragraphs\n• Keep your thesis in mind while writing\n• Proofread for grammar and spelling",
+  "questions": [
+    {
+      "prompt": "What are the three main parts of an essay?",
+      "choices": ["Beginning, Middle, End", "Introduction, Body, Conclusion", "Hook, Thesis, Evidence", "Topic, Details, Summary"],
+      "correctIndex": 1,
+      "hint": "Think of it like a sandwich"
+    },
+    {
+      "prompt": "What is the thesis statement?",
+      "choices": ["The first sentence", "The main argument of the essay", "The introduction only", "The conclusion"],
+      "correctIndex": 1,
+      "hint": "It states your main point"
+    },
+    {
+      "prompt": "What should each body paragraph include?",
+      "choices": ["Only examples", "Only evidence", "TEEC structure", "Just the topic sentence"],
+      "correctIndex": 2,
+      "hint": "Topic, Evidence, Explanation, Conclusion"
+    },
+    {
+      "prompt": "What is the purpose of the introduction?",
+      "choices": ["To summarize everything", "To catch attention and introduce the topic", "To give evidence", "To restate the thesis"],
+      "correctIndex": 1,
+      "hint": "It should grab the reader's interest"
+    },
+    {
+      "prompt": "In the conclusion, you should NOT...",
+      "choices": ["Restate the thesis", "Summarize main points", "Introduce new information", "End with a thought"],
+      "correctIndex": 2,
+      "hint": "Don't bring up new ideas in the conclusion"
+    }
+  ]
+}

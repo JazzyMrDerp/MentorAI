@@ -1,364 +1,137 @@
-import { gsap } from 'gsap';
-import { icons } from 'lucide';
+import type { Lesson, StudentProfile, Subject } from '../types.ts';
 
-import { getCopy } from '../copy.ts';
-import type { CreateProfileInput } from '../router.ts';
-import type { Language, Lesson, StudentProfile, Subject } from '../types.ts';
-
-interface DashboardScreenOptions {
+interface DashboardOptions {
   profile: StudentProfile | null;
   lessons: Lesson[];
   isOnline: boolean;
-  onCreateProfile: (input: CreateProfileInput) => Promise<void>;
   onOpenLesson: (subject: Subject) => void;
-  onSetLanguage: (language: Language) => Promise<void>;
 }
 
-type SubjectView = {
-  subject: Subject;
-  icon: string;
-  accentClass: string;
-  title: string;
-  xp: number;
-  progress: number;
-  count: number;
-  nextLesson: Lesson | null;
-};
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+function getLevelFromXP(xp: number): number {
+  return Math.floor(xp / 200) + 1;
 }
 
-function levelProgress(profile: StudentProfile | null): { width: number; remaining: number } {
-  if (!profile) {
-    return { width: 24, remaining: 80 };
-  }
-
-  const xpWindow = 200;
-  const carry = profile.totalXP % xpWindow;
-  const width = Math.max(12, (carry / xpWindow) * 100);
-  const remaining = xpWindow - carry;
-  return { width, remaining };
+function formatDate(): string {
+  const options: Intl.DateTimeFormatOptions = { weekday: 'long', month: 'short', day: 'numeric' };
+  return new Date().toLocaleDateString('en-US', options);
 }
 
-function subjectViews(profile: StudentProfile | null, lessons: Lesson[], language: Language): SubjectView[] {
-  const copy = getCopy(language);
+export function renderDashboard(options: DashboardOptions): HTMLElement {
+  const container = document.createElement('div');
+  container.className = 'app-layout';
+  
+  const nickname = options.profile?.nickname ?? 'Student';
+  const totalXP = options.profile?.totalXP ?? 0;
+  const streak = options.profile?.streak ?? 0;
+  const currentLevel = getLevelFromXP(totalXP);
+  const xpInLevel = totalXP % 200;
+  const xpProgress = Math.max(12, (xpInLevel / 200) * 100);
+  
+  const mathLessons = options.lessons.filter(l => l.subject === 'math');
+  const elaLessons = options.lessons.filter(l => l.subject === 'ela');
+  
+  const mathLastScore = 0;
+  const elaLastScore = 0;
 
-  return [
-    {
-      subject: 'math',
-      icon: 'atom',
-      accentClass: 'subject-card--math',
-      title: copy.subjects.math,
-      xp: profile?.mathXP ?? 0,
-      progress: Math.min(100, Math.max(20, (profile?.mathXP ?? 30) / 3)),
-      count: lessons.filter((lesson) => lesson.subject === 'math').length,
-      nextLesson: lessons.find((lesson) => lesson.subject === 'math') ?? null,
-    },
-    {
-      subject: 'ela',
-      icon: 'book-open-text',
-      accentClass: 'subject-card--ela',
-      title: copy.subjects.ela,
-      xp: profile?.elaXP ?? 0,
-      progress: Math.min(100, Math.max(20, (profile?.elaXP ?? 24) / 3)),
-      count: lessons.filter((lesson) => lesson.subject === 'ela').length,
-      nextLesson: lessons.find((lesson) => lesson.subject === 'ela') ?? null,
-    },
-  ];
-}
-
-export function renderDashboardScreen(options: DashboardScreenOptions): {
-  element: HTMLElement;
-  afterMount: () => void;
-} {
-  const language = options.profile?.language ?? 'en';
-  const copy = getCopy(language);
-  const progress = levelProgress(options.profile);
-  const subjects = subjectViews(options.profile, options.lessons, language);
-  const screen = document.createElement('section');
-
-  screen.className = 'screen dashboard';
-  screen.innerHTML = `
-    <section class="dashboard__hero glass-panel">
-      <div class="dashboard__hero-copy">
-        <div class="dashboard__hero-badges">
-          <span class="app-brand">
-            <span class="app-brand__mark"><i data-lucide="sparkles"></i></span>
-            ${copy.brand}
-          </span>
-          <span class="status-pill ${options.isOnline ? 'status-pill--online' : 'status-pill--offline'}">
-            <i data-lucide="${options.isOnline ? 'wifi' : 'wifi-off'}"></i>
-            ${options.isOnline ? copy.status.online : copy.status.offline}
-          </span>
+  container.innerHTML = `
+    <div class="main-content">
+      <div class="dashboard-header">
+        <div>
+          <h1 class="dashboard-welcome">Welcome back, ${nickname}</h1>
+          <p class="dashboard-sub">Ready to continue learning?</p>
         </div>
-        <p class="eyebrow">${copy.hero.eyebrow}</p>
-        <h1 class="section-title">${copy.hero.title}</h1>
-        <p>${copy.hero.body}</p>
-        <div class="button-row">
-          <button class="button" type="button" data-open-subject="math" ${options.profile ? '' : 'disabled'}>
-            <i data-lucide="rocket"></i>
-            ${copy.hero.primaryCta}
+        <div class="dashboard-date">${formatDate()}</div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-icon gold">🏆</div>
+          <div>
+            <div class="stat-label">Total XP</div>
+            <div class="stat-value">${totalXP}</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon orange">🔥</div>
+          <div>
+            <div class="stat-label">Streak</div>
+            <div class="stat-value">${streak}</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon teal">📚</div>
+          <div>
+            <div class="stat-label">Lessons</div>
+            <div class="stat-value">${options.lessons.length}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="level-card">
+        <div class="level-card-header">
+          <div class="level-card-title">
+            <span class="level-badge">⭐ Level ${currentLevel}</span>
+          </div>
+          <div class="level-xp-label">${xpInLevel} / 200 XP</div>
+        </div>
+        <div class="level-bar-track">
+          <div class="level-bar-fill" style="width: 0%" data-xp-fill="${xpProgress}%"></div>
+        </div>
+      </div>
+
+      <h2 class="section-title">Continue Learning</h2>
+      
+      <div class="continue-grid">
+        <div class="continue-card" data-subject="math">
+          <div class="continue-card-header">
+            <div class="continue-icon math">📐</div>
+            <div class="continue-last-score">
+              <div class="continue-score-label">Last Score</div>
+              <div class="continue-score-value">${mathLastScore}%</div>
+            </div>
+          </div>
+          <div class="continue-title">Math</div>
+          <div class="continue-meta">${mathLessons.length} lessons available</div>
+          <button class="btn-continue-math">
+            Continue →
           </button>
-          <button class="ghost-button" type="button" data-open-subject="ela" ${options.profile ? '' : 'disabled'}>
-            <i data-lucide="book-marked"></i>
-            ${copy.hero.secondaryCta}
+        </div>
+
+        <div class="continue-card" data-subject="ela">
+          <div class="continue-card-header">
+            <div class="continue-icon ela">📖</div>
+            <div class="continue-last-score">
+              <div class="continue-score-label">Last Score</div>
+              <div class="continue-score-value">${elaLastScore}%</div>
+            </div>
+          </div>
+          <div class="continue-title">ELA</div>
+          <div class="continue-meta">${elaLessons.length} lessons available</div>
+          <button class="btn-continue-ela">
+            Continue →
           </button>
         </div>
       </div>
-      <aside class="dashboard__stats">
-        <div class="dashboard__stats-head">
-          <div class="dashboard__nickname">
-            <span>${copy.profile.eyebrow}</span>
-            <strong>${escapeHtml(options.profile?.nickname ?? copy.profile.placeholderName)}</strong>
-          </div>
-          <span class="pill">
-            <i data-lucide="award"></i>
-            ${copy.profile.level} ${options.profile?.currentLevel ?? 1}
-          </span>
-        </div>
-        <div class="dashboard__xp">
-          <div class="dashboard__xp-bar">
-            <div class="dashboard__xp-fill" data-fill="${progress.width.toFixed(1)}%"></div>
-          </div>
-          <div class="dashboard__xp-meta">
-            <span>${copy.profile.totalXp}: ${options.profile?.totalXP ?? 0}</span>
-            <span>${copy.profile.nextLevel}: ${progress.remaining} XP</span>
-          </div>
-        </div>
-        <div class="dashboard__stat-grid">
-          <div class="stat-tile">
-            <strong>${options.profile?.streak ?? 0}</strong>
-            <span>${copy.profile.streak}</span>
-          </div>
-          <div class="stat-tile">
-            <strong>${options.lessons.length}</strong>
-            <span>${copy.profile.savedLessons}</span>
-          </div>
-          <div class="stat-tile">
-            <strong>${options.profile?.grade ?? 7}</strong>
-            <span>${copy.profile.grade}</span>
-          </div>
-        </div>
-      </aside>
-    </section>
-
-    <section class="dashboard__panel-row">
-      <section class="dashboard__panel glass-panel">
-        ${
-          options.profile
-            ? `
-              <p class="eyebrow">${copy.profile.controlEyebrow}</p>
-              <h2>${copy.profile.controlTitle}</h2>
-              <p>${copy.profile.controlBody}</p>
-              <div class="field">
-                <label>${copy.profile.languageLabel}</label>
-                <div class="segmented" data-language-switcher>
-                  <button class="segmented__option ${language === 'en' ? 'is-active' : ''}" type="button" data-language="en">English</button>
-                  <button class="segmented__option ${language === 'es' ? 'is-active' : ''}" type="button" data-language="es">Espanol</button>
-                </div>
-              </div>
-              <div class="button-row">
-                <span class="chip">
-                  <i data-lucide="badge-check"></i>
-                  ${copy.profile.deviceSafe}
-                </span>
-                <span class="chip">
-                  <i data-lucide="shield"></i>
-                  ${copy.profile.privacySafe}
-                </span>
-              </div>
-            `
-            : `
-              <p class="eyebrow">${copy.onboarding.eyebrow}</p>
-              <h2>${copy.onboarding.title}</h2>
-              <p>${copy.onboarding.body}</p>
-              <form class="dashboard__form" data-profile-form>
-                <div class="field">
-                  <label for="nickname">${copy.onboarding.nicknameLabel}</label>
-                  <input class="text-input" id="nickname" name="nickname" type="text" maxlength="18" placeholder="${copy.onboarding.nicknamePlaceholder}" required />
-                </div>
-                <div class="field">
-                  <label>${copy.onboarding.gradeLabel}</label>
-                  <div class="segmented" data-grade-picker>
-                    <button class="segmented__option" type="button" data-grade="6">Grade 6</button>
-                    <button class="segmented__option is-active" type="button" data-grade="7">Grade 7</button>
-                    <button class="segmented__option" type="button" data-grade="8">Grade 8</button>
-                  </div>
-                </div>
-                <div class="field">
-                  <label>${copy.onboarding.languageLabel}</label>
-                  <div class="segmented" data-language-picker>
-                    <button class="segmented__option is-active" type="button" data-language="en">English</button>
-                    <button class="segmented__option" type="button" data-language="es">Espanol</button>
-                  </div>
-                </div>
-                <input type="hidden" name="grade" value="7" />
-                <input type="hidden" name="language" value="en" />
-                <button class="button button--teal" type="submit">
-                  <i data-lucide="user-round-plus"></i>
-                  ${copy.onboarding.submit}
-                </button>
-              </form>
-            `
-        }
-      </section>
-    </section>
-
-    <section class="dashboard__subjects">
-      <p class="eyebrow">${copy.subjects.eyebrow}</p>
-      <h2>${copy.subjects.title}</h2>
-      <p class="dashboard__subjects-intro">${copy.subjects.body}</p>
-      <div class="dashboard__subject-grid">
-        ${subjects
-          .map(
-            (subject) => `
-              <article class="subject-card ${subject.accentClass}">
-                <div class="subject-card__head">
-                  <div class="subject-card__label">
-                    <span class="subject-card__icon ${subject.subject === 'math' ? 'subject-card__icon--math' : 'subject-card__icon--ela'}">
-                      <i data-lucide="${subject.icon}"></i>
-                    </span>
-                    <div>
-                      <p class="eyebrow">${subject.title}</p>
-                      <strong>${subject.count} ${copy.subjects.lessonCountLabel}</strong>
-                    </div>
-                  </div>
-                  <span class="meta-pill">${subject.xp} XP</span>
-                </div>
-                <div class="subject-card__body">
-                  <strong>${escapeHtml(subject.nextLesson?.title ?? copy.subjects.waitingTitle)}</strong>
-                  <p>${escapeHtml(subject.nextLesson?.content.split(/\n+/)[0] ?? copy.subjects.waitingBody)}</p>
-                </div>
-                <div class="subject-card__progress">
-                  <div class="subject-card__track">
-                    <span style="width: ${subject.progress}%"></span>
-                  </div>
-                  <p class="muted">${copy.subjects.progressLabel}</p>
-                </div>
-                <div class="subject-card__footer">
-                  <span>${copy.subjects.footer}</span>
-                  <button class="button" type="button" data-open-subject="${subject.subject}" ${options.profile ? '' : 'disabled'}>
-                    <i data-lucide="arrow-right"></i>
-                    ${copy.subjects.open}
-                  </button>
-                </div>
-              </article>
-            `,
-          )
-          .join('')}
-      </div>
-    </section>
+    </div>
   `;
 
-screen.querySelectorAll('[data-lucide]').forEach((el) => {
-  const name = el.getAttribute('data-lucide') as string;
-  if (icons[name as keyof typeof icons]) {
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    el.replaceWith(svg);
-  }
-});
+  setTimeout(() => {
+    const xpFill = container.querySelector('[data-xp-fill]') as HTMLElement;
+    if (xpFill && xpFill.dataset.xpFill) {
+      xpFill.style.width = xpFill.dataset.xpFill;
+    }
+  }, 100);
 
-  const profileForm = screen.querySelector<HTMLFormElement>('[data-profile-form]');
-  if (profileForm) {
-    const gradeInput = profileForm.querySelector<HTMLInputElement>('input[name="grade"]');
-    const languageInput = profileForm.querySelector<HTMLInputElement>('input[name="language"]');
-    const gradeButtons = profileForm.querySelectorAll<HTMLButtonElement>('[data-grade]');
-    const languageButtons = profileForm.querySelectorAll<HTMLButtonElement>('[data-language]');
+  const mathCard = container.querySelector('[data-subject="math"]');
+  const elaCard = container.querySelector('[data-subject="ela"]');
 
-    gradeButtons.forEach((button) => {
-      button.addEventListener('click', () => {
-        gradeInput!.value = button.dataset.grade ?? '7';
-        gradeButtons.forEach((item) => item.classList.toggle('is-active', item === button));
-      });
-    });
+  mathCard?.addEventListener('click', () => options.onOpenLesson('math'));
+  elaCard?.addEventListener('click', () => options.onOpenLesson('ela'));
 
-    languageButtons.forEach((button) => {
-      button.addEventListener('click', () => {
-        languageInput!.value = button.dataset.language ?? 'en';
-        languageButtons.forEach((item) => item.classList.toggle('is-active', item === button));
-      });
-    });
+  return container;
+}
 
-    profileForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
-
-      const formData = new FormData(profileForm);
-      const nickname = `${formData.get('nickname') ?? ''}`.trim();
-      const grade = Number(formData.get('grade')) as 6 | 7 | 8;
-      const formLanguage = `${formData.get('language') ?? 'en'}` as Language;
-
-      if (!nickname) {
-        return;
-      }
-
-      await options.onCreateProfile({
-        nickname,
-        grade,
-        language: formLanguage,
-      });
-    });
-  }
-
-  const openButtons = screen.querySelectorAll<HTMLButtonElement>('[data-open-subject]');
-  openButtons.forEach((button) => {
-    button.addEventListener('click', () => {
-      const subject = button.dataset.openSubject as Subject;
-      if (subject) {
-        options.onOpenLesson(subject);
-      }
-    });
-  });
-
-  const switcher = screen.querySelector('[data-language-switcher]');
-  if (switcher) {
-    switcher.querySelectorAll<HTMLButtonElement>('[data-language]').forEach((button) => {
-      button.addEventListener('click', async () => {
-        const nextLanguage = button.dataset.language as Language | undefined;
-        if (!nextLanguage || nextLanguage === language) {
-          return;
-        }
-
-        await options.onSetLanguage(nextLanguage);
-      });
-    });
-  }
-
-  return {
-    element: screen,
-    afterMount: () => {
-      gsap.from(screen.querySelectorAll('.dashboard__hero-copy > *'), {
-        duration: 0.7,
-        opacity: 0.82,
-        y: 10,
-        stagger: 0.08,
-        ease: 'power3.out',
-      });
-
-      gsap.from(screen.querySelectorAll('.dashboard__panel, .subject-card, .stat-tile'), {
-        duration: 0.72,
-        opacity: 0.86,
-        y: 12,
-        stagger: 0.08,
-        ease: 'power3.out',
-        delay: 0.14,
-      });
-
-      const xpFill = screen.querySelector<HTMLElement>('.dashboard__xp-fill');
-      const targetWidth = xpFill?.dataset.fill;
-      if (xpFill && targetWidth) {
-        gsap.to(xpFill, {
-          duration: 1.1,
-          width: targetWidth,
-          ease: 'power3.out',
-          delay: 0.25,
-        });
-      }
-    },
-  };
+export function showDashboard(options: DashboardOptions): HTMLElement {
+  const container = renderDashboard(options);
+  return container;
 }

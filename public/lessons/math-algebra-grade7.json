@@ -1,0 +1,40 @@
+{
+  "subject": "math",
+  "grade": 7,
+  "language": "en",
+  "title": "Introduction to Algebra: Variables and Expressions",
+  "topic": "algebra",
+  "content": "Introduction to Algebra\n\nWhat is Algebra?\n\nAlgebra is like arithmetic but with a twist — we use letters (called variables) to represent numbers we don't know yet. It's a way to write rules and solve problems!\n\nVariables\n\nA variable is a letter that stands for a number. Common variables are x, y, n, and a.\n\nExamples:\n• x + 5 = 12 (x stands for 7)\n• y - 3 = 10 (y stands for 13)\n• n × 4 = 20 (n stands for 5)\n\nWriting Expressions\n\nAn algebraic expression uses variables, numbers, and operations (like +, -, ×, ÷).\n\nExamples:\n• \"3 more than x\" → x + 3\n• \"twice a number\" → 2n\n• \"subtract 7 from y\" → y - 7\n• \"the product of 4 and a\" → 4a\n\nEvaluating Expressions\n\nWhen we know the value of the variable, we can evaluate (solve) the expression.\n\nExample: If n = 6, what is n + 4?\nn + 4 = 6 + 4 = 10\n\nExample: If x = 3, what is 5x?\n5(3) = 15\n\nWriting Your Own Expressions\n\nPractice translating words to algebra:\n• \"5 added to a number\" → n + 5\n• \"a number multiplied by 3\" → 3n\n• \"10 less than y\" → y - 10\n• \"a number divided by 2\" → n/2",
+  "questions": [
+    {
+      "prompt": "If x = 5, what is x + 3?",
+      "choices": ["8", "53", "15", "2"],
+      "correctIndex": 0,
+      "hint": "Just add: 5 + 3 = ?"
+    },
+    {
+      "prompt": "Which expression means 'twice a number, plus 7'?",
+      "choices": ["2n + 7", "n + 2 + 7", "n + 7 × 2", "7 twice n"],
+      "correctIndex": 0,
+      "hint": "'Twice' means multiply by 2, then add 7"
+    },
+    {
+      "prompt": "If n = 4, what is 3n?",
+      "choices": ["7", "12", "34", "43"],
+      "correctIndex": 1,
+      "hint": "3n means 3 × 4"
+    },
+    {
+      "prompt": "What is '10 less than y' written as an algebraic expression?",
+      "choices": ["10 - y", "y - 10", "10y", "y10"],
+      "correctIndex": 1,
+      "hint": "Subtract 10 from y"
+    },
+    {
+      "prompt": "If x = 0, what is 5x + 3?",
+      "choices": ["3", "8", "5", "53"],
+      "correctIndex": 0,
+      "hint": "5(0) = 0, then 0 + 3"
+    }
+  ]
+}

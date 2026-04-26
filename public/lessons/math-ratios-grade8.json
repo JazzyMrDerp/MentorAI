@@ -1,0 +1,40 @@
+{
+  "subject": "math",
+  "grade": 8,
+  "language": "en",
+  "title": "Word Problems with Ratios",
+  "topic": "ratios",
+  "content": "Word Problems with Ratios\n\nWhat is a Ratio?\n\nA ratio compares two quantities. It tells us how much of one thing there is compared to another.\n\nWays to Write Ratios\n\n• Using \"to\" — 3 to 4\n• Using a colon — 3:4\n• As a fraction — 3/4\n\nRatios in Real Life\n\n• Recipe: 2 cups flour to 1 cup sugar (2:1)\n• Map scale: 1 inch = 100 miles\n• Class ratio: 12 girls to 10 boys (12:10)\n\nSimplifying Ratios\n\nJust like fractions, ratios can be simplified. Divide both numbers by their greatest common factor (GCF).\n\nExample: Simplify 12:8\n• Both divisible by 4\n• 12 ÷ 4 = 3, 8 ÷ 4 = 2\n• Simplified ratio: 3:2\n\nEquivalent Ratios\n\nMultiply or divide both parts by the same number to get equivalent ratios.\n\n• 2:3 = 4:6 = 6:9 = 10:15\n\nSolving Ratio Problems\n\nUse \"what I do to one side, I do to the other!\"\n\nWord Problem:\n\"The ratio of blue marbles to red marbles is 3:5. If there are 15 red marbles, how many blue marbles are there?\"\n\nSolution:• Ratio is 3:5\n• To go from 5 to 15, multiply by 3\n• Do the same to 3 × 3 = 9 blue marbles\n\nWord Problem:\n\"A recipe makes 12 cookies using 2 cups of flour. How many cups of flour are needed for 30 cookies?\"\n\nSolution:\n• 12 to 30 is multiplied by 2.5 (not a whole number, so use fractions)\n• Actually: 12 cookies = 2 cups, so 1 cookie = 2/12 = 1/6 cup\n• 30 cookies = 30 × 1/6 = 5 cups of flour",
+  "questions": [
+    {
+      "prompt": "Simplify the ratio 8:12",
+      "choices": ["2:3", "4:6", "8:12", "1:2"],
+      "correctIndex": 0,
+      "hint": "Divide both numbers by their GCF (4)"
+    },
+    {
+      "prompt": "The ratio of apples to oranges in a basket is 3:4. If there are 9 apples, how many oranges are there?",
+      "choices": ["10", "12", "16", "14"],
+      "correctIndex": 1,
+      "hint": "9 divided by 3 = 3, multiply 4 by 3"
+    },
+    {
+      "prompt": "If the ratio of boys to girls is 2:3 and there are 20 boys, how many girls?",
+      "choices": ["30", "10", "15", "25"],
+      "correctIndex": 0,
+      "hint": "20 ÷ 2 = 10, multiply 3 × 10"
+    },
+    {
+      "prompt": "Which ratio is equivalent to 5:2?",
+      "choices": ["10:4", "15:6", "7:4", "5:2 (same)"],
+      "correctIndex": 0,
+      "hint": "Multiply both parts of 5:2 by 2"
+    },
+    {
+      "prompt": "A map has a scale of 1:100. If two cities are 3.5 inches apart on the map, how far apart are they in real life?",
+      "choices": ["100 miles", "350 miles", "103.5 miles", "3500 miles"],
+      "correctIndex": 1,
+      "hint": "Multiply 3.5 by 100"
+    }
+  ]
+}

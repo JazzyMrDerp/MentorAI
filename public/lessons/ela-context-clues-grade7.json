@@ -1,0 +1,40 @@
+{
+  "subject": "ela",
+  "grade": 7,
+  "language": "en",
+  "title": "Context Clues",
+  "topic": "context-clues",
+  "content": "Context Clues\n\nWhat Are Context Clues?\n\nContext clues are words around an unfamiliar word that help you figure out its meaning. You don't always need a dictionary!\n\nTypes of Context Clues\n\n1. Definition/Explanation\nThe word is directly defined in the sentence.\n\n\"The benevolent king, or one who is kind and generous...\"\n\n2. Example\nExamples are given to show meaning.\n\"Fruits, such as apples, oranges, and bananas...\"\n\n3. Synonym\nA similar word gives a clue.\n\n\"The child seemed terrified (very frightened) and hid.\"\n\n4. Contrast\nAn opposite word or idea gives a clue.\n\n\"Unlike her shy sister, Emma was very outgoing.\"\n\nHow to Use Context Clues\n\nStep 1: Look at the sentence with the unfamiliar word\nStep 2: Find clues nearby (definitions, examples, synonyms, contrasts)\nStep 3: Use those clues to guess the meaning\nStep 4: Check if your guess makes sense\n\nWhy Context Clues Matter\n\n• Helps you read faster\n• Builds vocabulary naturally\n• Works when you don't have a dictionary\n• Makes you a better reader!\n\nPractice\n\n\"The weather was temperate today — not too hot and not too cold.\"\n\nTemperate most likely means:\n• Moderate (in the middle)\n• Based on the contrast clue in \"not too hot and not too cold\"\n\n\"Her gregarious personality made her the center of every party.\"\n\nGregarious most likely means:\n• Outgoing, social\n• Based on example - \"center of every party\"",
+  "questions": [
+    {
+      "prompt": "\"She was articulate, able to speak clearly and eloquently...\" What type of context clue is this?",
+      "choices": ["Synonym", "Definition", "Example", "Contrast"],
+      "correctIndex": 1,
+      "hint": "The meaning is explained directly"
+    },
+    {
+      "prompt": "\"Unlike his brother, Marcus was very shy.\" What does 'shy' mean here, based on the contrast?",
+      "choices": ["Like his brother", "Quiet and reserved", "Outgoing", "Happy"],
+      "correctIndex": 1,
+      "hint": "It's different from the brother"
+    },
+    {
+      "prompt": "What is a context clue?",
+      "choices": ["A dictionary definition", "Words around an unfamiliar word that help meaning", "A vocabulary list", "The first word in a sentence"],
+      "correctIndex": 1,
+      "hint": "Look at the surrounding words"
+    },
+    {
+      "prompt": "\"The weather was inclement — rain and strong winds all day.\" What does 'inclement' mean?",
+      "choices": ["Nice", "Bad weather", "Windy", "Rainy only"],
+      "correctIndex": 1,
+      "hint": "The example explains the meaning"
+    },
+    {
+      "prompt": "Using context clues is helpful because...",
+      "choices": ["It's always accurate", "You can figure out words without a dictionary", "It's required in school", "It helps you read faster"],
+      "correctIndex": 1,
+      "hint": "Context clues are about understanding without looking up"
+    }
+  ]
+}

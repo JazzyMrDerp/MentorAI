@@ -1,0 +1,40 @@
+{
+  "subject": "math",
+  "grade": 7,
+  "language": "en",
+  "title": "Geometry: Area and Perimeter",
+  "topic": "geometry",
+  "content": "Area and Perimeter\n\nWhat are Area and Perimeter?\n\nPerimeter is the distance around the outside of a shape. Imagine walking around a soccer field — that's the perimeter!\n\nArea is the space inside a shape. Imagine mowing the grass inside a soccer field — that's the area!\n\nPerimeter Formulas\n\nRectangle:\nPerimeter = 2(length + width) = 2l + 2w\n\nSquare (all sides equal):\nPerimeter = 4 × side\n\nTriangle:\nPerimeter = side1 + side2 + side3\n\nArea Formulas\n\nRectangle:\nArea = length × width = l × w\n\nSquare:\nArea = side × side = side²\n\nTriangle:\nArea = 1/2 × base × height\n\nCircle:\nArea = π × radius² (r²)\n\nLet's Practice!\n\nRectangle with length = 8 cm and width = 5 cm:\n• Perimeter = 2(8 + 5) = 2(13) = 26 cm\n• Area = 8 × 5 = 40 cm²\n\nSquare with side = 6 cm:\n• Perimeter = 4(6) = 24 cm\n• Area = 6 × 6 = 36 cm²\n\nRemember!\n\n• Perimeter is always measured in linear units (cm, m, in)\n• Area is always measured in square units (cm², m², in²)\n• The little ² means \"square units\"",
+  "questions": [
+    {
+      "prompt": "What is the perimeter of a rectangle with length 10cm and width 5cm?",
+      "choices": ["50 cm", "30 cm", "15 cm", "25 cm"],
+      "correctIndex": 1,
+      "hint": "Perimeter = 2(l + w) = 2(10 + 5)"
+    },
+    {
+      "prompt": "What is the area of a rectangle with length 7 and width 4?",
+      "choices": ["28", "22", "11", "15"],
+      "correctIndex": 0,
+      "hint": "Area = length × width = 7 × 4"
+    },
+    {
+      "prompt": "A square has sides of 6cm each. What is its area?",
+      "choices": ["24 cm²", "36 cm", "36 cm²", "12 cm"],
+      "correctIndex": 2,
+      "hint": "Area of a square = side × side"
+    },
+    {
+      "prompt": "What is the perimeter of a square with side 9cm?",
+      "choices": ["81 cm", "36 cm", "18 cm", "9 cm"],
+      "correctIndex": 1,
+      "hint": "Perimeter of a square = 4 × side"
+    },
+    {
+      "prompt": "A rectangle has length 8m and area 56m². What is its width?",
+      "choices": ["7m", "48m", "6m", "8m"],
+      "correctIndex": 0,
+      "hint": "Area = length × width, so 56 = 8 × width"
+    }
+  ]
+}

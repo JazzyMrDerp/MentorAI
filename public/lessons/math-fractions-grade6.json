@@ -1,0 +1,40 @@
+{
+  "subject": "math",
+  "grade": 6,
+  "language": "en",
+  "title": "Introduction to Fractions",
+  "topic": "fractions",
+  "content": "Understanding Fractions\n\nWhat is a Fraction?\n\nA fraction represents a part of a whole. Think of cutting a pizza into equal slices — each slice is a fraction of the entire pizza!\n\nParts of a Fraction\n\nA fraction has two numbers:\n\n• The top number (numerator) tells us how many pieces we have\n• The bottom number (denominator) tells us how many equal pieces the whole is divided into\n\nFor example, 3/8 means we have 3 pieces out of 8 total pieces.\n\nVisual Fractions\n\nImagine a chocolate bar with 4 squares:\n• Eating 1 square = 1/4 of the bar\n• Eating 2 squares = 2/4 = 1/2 of the bar\n• Eating 3 squares = 3/4 of the bar\n• Eating all 4 squares = 4/4 = 1 (the whole bar!)\n\nProper Fractions\n\nWhen the numerator is smaller than the denominator, we call this a proper fraction. These are always less than 1.\n\nExamples: 1/2, 3/4, 2/5, 7/8\n\nPractice: The pizza was cut into 6 slices. If you eat 2 slices, what fraction did you eat?\nAnswer: 2/6 which we can simplify to 1/3!",
+  "questions": [
+    {
+      "prompt": "What does the numerator in a fraction tell us?",
+      "choices": ["How many pieces the whole is divided into", "How many pieces we have", "The number on top of a fraction", "The total number of pieces"],
+      "correctIndex": 1,
+      "hint": "Look at the top number!"
+    },
+    {
+      "prompt": "What fraction of the pizza is eaten if it has 8 slices and 3 are eaten?",
+      "choices": ["3/8", "8/3", "3.8", "8-3"],
+      "correctIndex": 0,
+      "hint": "First number is pieces eaten, second is total pieces"
+    },
+    {
+      "prompt": "Which fraction is greater than 1/2?",
+      "choices": ["1/4", "2/4", "3/4", "2/8"],
+      "correctIndex": 2,
+      "hint": "Fractions greater than 1/2 have numerator more than half the denominator"
+    },
+    {
+      "prompt": "Simplify 4/8 to its lowest form",
+      "choices": ["1/2", "4/8", "2/4", "1/4"],
+      "correctIndex": 0,
+      "hint": "Divide both numbers by their greatest common factor (4)"
+    },
+    {
+      "prompt": "If a pizza is cut into 6 slices and all 6 are eaten, what fraction represents this?",
+      "choices": ["6/6", "1/6", "6/0", "1"],
+      "correctIndex": 0,
+      "hint": "When numerator equals denominator, the fraction equals 1"
+    }
+  ]
+}

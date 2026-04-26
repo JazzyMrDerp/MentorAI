@@ -1,0 +1,40 @@
+{
+  "subject": "ela",
+  "grade": 7,
+  "language": "en",
+  "title": "Figurative Language: Similes and Metaphors",
+  "topic": "figurative-language",
+  "content": "Figurative Language\n\nWhat is Figurative Language?\n\nFigurative language is when writers use words in creative, non-literal ways to create images and emotions. It's not meant to be taken literally — it's meant to paint a picture in your mind!\n\nSimiles\n\nA simile compares two things using like or as.\n• \"Her smile was like sunshine\" (comparing smile to sunshine)\n• \"He ran as fast as a cheetah\" (comparing speed to a cheetah)\n\nSimiles always use like or as to make the comparison.\n\nMetaphors\n\nA metaphor compares two things WITHOUT using like or as. It states one thing IS another.\n• \"Her smile was sunshine\" (her smile IS sunshine)\n• \"Life is a journey\" (life IS a journey)\n\nMetaphors are stronger than similes because they say the comparison is true.\n\nWhy Use Them?\n\n• Create vivid images in readers' minds\n• Help readers understand feelings\n• Make writing more interesting and memorable\n• Express emotions in new ways\n\nPractice Identifying\n\n1. \"The world is my oyster\" → Metaphor (世界=oyster in a comparing way, no like/as)\n2. \"Her voice was like music\" → Simile (uses like)\n3. \"Time is a thief\" → Metaphor (time literally is a thief)\n4. \"The snow was like a white blanket\" → Simile (uses like)",
+  "questions": [
+    {
+      "prompt": "\"He eats like a pig\" is an example of what?",
+      "choices": ["Metaphor", "Simile", "Personification", "Hyperbole"],
+      "correctIndex": 1,
+      "hint": "Uses the word 'like'"
+    },
+    {
+      "prompt": "\"Life is a roller coaster\" is what type of figurative language?",
+      "choices": ["Simile", "Metaphor", "Alliteration", "Onomatopoeia"],
+      "correctIndex": 1,
+      "hint": "No 'like' or 'as' used"
+    },
+    {
+      "prompt": "What makes a metaphor different from a simile?",
+      "choices": ["Metaphors use like or as", "Similes compare but metaphors don't", "Metaphors are always longer", "Similes use like or as"],
+      "correctIndex": 3,
+      "hint": "Compare their structures"
+    },
+    {
+      "prompt": "\"The stars are diamond scattered across the night sky\" is an example of what?",
+      "choices": ["Simile", "Metaphor", "Idiom", "Alliteration"],
+      "correctIndex": 1,
+      "hint": "Stars ARE diamonds without using like or as"
+    },
+    {
+      "prompt": "Why do writers use figurative language?",
+      "choices": ["To confuse readers", "To make writing shorter", "To create vivid images and emotions", "To use more words"],
+      "correctIndex": 2,
+      "hint": "Think about the effect on readers"
+    }
+  ]
+}

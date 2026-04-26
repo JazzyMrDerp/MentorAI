@@ -1,0 +1,40 @@
+{
+  "subject": "math",
+  "grade": 6,
+  "language": "en",
+  "title": "Decimals and Place Value",
+  "topic": "decimals",
+  "content": "Decimals and Place Value\n\nWhat are Decimals?\n\nDecimals are another way to write fractions, especially when parts of a whole are less than 1. They use a decimal point (.) to separate the whole number from the fractional part.\n\nUnderstanding Place Value\n\nLet's look at the number 47.823:\n\n• 4 in the tens place = 40\n• 7 in the ones place = 7\n• 8 in the tenths place = 0.8\n• 2 in the hundredths place = 0.02\n• 3 in the thousandths place = 0.003\n\nReading Decimals\n\nTo read a decimal, read the whole number, then the decimal point as 'and', then the fractional part as a whole number with the last place value.\n\nExamples:\n• 2.5 = \"two and five-tenths\"\n• 3.47 = \"three and forty-seven hundredths\"\n• 12.803 = \"twelve and eight hundred three thousandths\"\n\nConverting Fractions to Decimals\n\nDivide the numerator by the denominator:\n• 1/2 = 1 ÷ 2 = 0.5\n• 3/4 = 3 ÷ 4 = 0.75\n• 1/8 = 1 ÷ 8 = 0.125\n\nComparing Decimals\n\nTo compare decimals, line them up by the decimal point and compare digit by digit from left to right.\n\nExample: Which is larger, 2.34 or 2.41?\n• Both have 2 in the ones place\n• Compare tenths: 3 vs 4\n• Since 4 > 3, 2.41 > 2.34",
+  "questions": [
+    {
+      "prompt": "In the number 5.67, what digit is in the tenths place?",
+      "choices": ["5", "6", "7", "65"],
+      "correctIndex": 1,
+      "hint": "The first digit after the decimal point is tenths"
+    },
+    {
+      "prompt": "What is 1/4 written as a decimal?",
+      "choices": ["0.4", "0.25", "0.14", "1.4"],
+      "correctIndex": 1,
+      "hint": "Divide 1 by 4"
+    },
+    {
+      "prompt": "Which decimal is the largest? 3.2, 3.02, 3.24, 3.4",
+      "choices": ["3.2", "3.02", "3.24", "3.4"],
+      "correctIndex": 3,
+      "hint": "Compare tenths place after the decimal"
+    },
+    {
+      "prompt": "How do you write 'twelve and three tenths' as a decimal?",
+      "choices": ["12.3", "12.03", "123", "12.03"],
+      "correctIndex": 0,
+      "hint": "'Twelve' is whole, 'three tenths' is the decimal part"
+    },
+    {
+      "prompt": "What is 0.75 as a fraction in simplest form?",
+      "choices": ["75/100", "3/4", "3/5", "1/2"],
+      "correctIndex": 1,
+      "hint": "0.75 = 75/100, divide both by 25"
+    }
+  ]
+}

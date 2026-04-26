@@ -1,0 +1,40 @@
+{
+  "subject": "ela",
+  "grade": 6,
+  "language": "en",
+  "title": "Finding the Main Idea",
+  "topic": "main-idea",
+  "content": "Finding the Main Idea\n\nWhat is the Main Idea?\n\nThe main idea tells us what the whole text is about. It's the most important message the author wants to share. Everything else in the passage supports this big idea!\n\nHow to Find the Main Idea\n\n1. Ask yourself: What is this passage mostly about?\n2. Look at the title — it often hints at the topic\n3. Find the key sentence that sums up the whole passage\n4. Consider what detail all the other sentences support\n\nMain Idea vs. Topic\n\n• Topic = the subject (broader): Dogs\n• Main Idea = the message about the topic (specific): Dogs make great family pets because they're loyal and easy to train.\n\nWhere to Find It\n\n• Sometimes it's stated directly in one sentence (usually the first or last)\n• Sometimes you have to figure it out by combining all the ideas\n\nPractice Passage:\n\n\"Every year, millions of families go to the beach. The ocean is home to billions of creatures. Sand dollars, starfish, and crabs all live in the warm, shallow waters. The beach is also a popular place for people to swim and build sandcastles.\"\n\nMain Idea: The beach is home to many different creatures and activities.\n\nFinding Implied Main Idea\n\nSometimes the main idea is NOT stated directly. You need to infer it:\n• Think about the title\n• Consider the most repeated idea\n• Ask: What point is the author making?",
+  "questions": [
+    {
+      "prompt": "What is the main idea of a passage about a dog named Max who learns new tricks, loves his owner, and goes to the park every day?",
+      "choices": ["Max learns new tricks", "Max goes to the park", "Max is a happy dog who loves his life", "Dogs love parks"],
+      "correctIndex": 2,
+      "hint": "What do all the details support?"
+    },
+    {
+      "prompt": "Where is the main idea usually stated in an informational text?",
+      "choices": ["The middle", "One key sentence", "The title only", "Every sentence"],
+      "correctIndex": 1,
+      "hint": "Look for the sentence that summarizes everything"
+    },
+    {
+      "prompt": "What is the difference between topic and main idea?",
+      "choices": ["They are the same thing", "Topic is what it's about; main idea is the message about it", "Topic is shorter", "Main idea is always in the title"],
+      "correctIndex": 1,
+      "hint": "Topic is the subject; main idea is the specific message"
+    },
+    {
+      "prompt": "A passage describes lions as strong, fast, and powerful predators. What is the main idea?",
+      "choices": ["There are many predators", "Lions are strong animals", "Lions are the king of beasts", "Lions are strong, fast, and powerful predators"],
+      "correctIndex": 3,
+      "hint": "Combine the details into one sentence"
+    },
+    {
+      "prompt": "If the main idea is not directly stated, what should you do?",
+      "choices": ["Give up", "Look for clues and think about the title", "Choose any detail", "Skip the passage"],
+      "correctIndex": 1,
+      "hint": "Use clues like the title and key details"
+    }
+  ]
+}

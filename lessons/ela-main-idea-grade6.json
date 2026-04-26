@@ -7,33 +7,73 @@
   "questions": [
     {
       "prompt": "What is the main idea?",
-      "choices": ["A small detail", "What the text is mostly about", "The last word", "A random fact"],
+      "choices": [
+        "A small detail",
+        "What the text is mostly about",
+        "The last word",
+        "A random fact"
+      ],
       "correctIndex": 1,
-      "hint": "Think about the overall message."
+      "hint": "Think about the overall message.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     },
     {
       "prompt": "What do supporting details do?",
-      "choices": ["Support the main idea", "Replace the title", "Confuse the reader", "End the story"],
+      "choices": [
+        "Support the main idea",
+        "Replace the title",
+        "Confuse the reader",
+        "End the story"
+      ],
       "correctIndex": 0,
-      "hint": "Details help explain the main point."
+      "hint": "Details help explain the main point.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     },
     {
       "prompt": "Which clue can help you find the main idea?",
-      "choices": ["Repeated ideas", "Page number only", "Font size only", "Random comma"],
+      "choices": [
+        "Repeated ideas",
+        "Page number only",
+        "Font size only",
+        "Random comma"
+      ],
       "correctIndex": 0,
-      "hint": "Look for ideas that appear more than once."
+      "hint": "Look for ideas that appear more than once.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     },
     {
       "prompt": "If a paragraph gives many facts about saving water, the main idea is probably about:",
-      "choices": ["Cooking food", "Saving water", "Playing sports", "Buying shoes"],
+      "choices": [
+        "Cooking food",
+        "Saving water",
+        "Playing sports",
+        "Buying shoes"
+      ],
       "correctIndex": 1,
-      "hint": "Pick the idea all facts connect to."
+      "hint": "Pick the idea all facts connect to.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     },
     {
       "prompt": "Which is usually NOT a main idea?",
-      "choices": ["The biggest message", "The overall point", "One tiny example", "What the passage is mostly about"],
+      "choices": [
+        "The biggest message",
+        "The overall point",
+        "One tiny example",
+        "What the passage is mostly about"
+      ],
       "correctIndex": 2,
-      "hint": "A tiny example is usually a detail."
+      "hint": "A tiny example is usually a detail.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     }
   ]
 }

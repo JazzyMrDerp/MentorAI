@@ -7,33 +7,73 @@
   "questions": [
     {
       "prompt": "What does a variable represent?",
-      "choices": ["A known answer", "An unknown value", "A punctuation mark", "A shape"],
+      "choices": [
+        "A known answer",
+        "An unknown value",
+        "A punctuation mark",
+        "A shape"
+      ],
       "correctIndex": 1,
-      "hint": "Variables often use letters like x."
+      "hint": "Variables often use letters like x.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     },
     {
       "prompt": "Solve: x + 5 = 12",
-      "choices": ["5", "7", "12", "17"],
+      "choices": [
+        "5",
+        "7",
+        "12",
+        "17"
+      ],
       "correctIndex": 1,
-      "hint": "Subtract 5 from both sides."
+      "hint": "Subtract 5 from both sides.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     },
     {
       "prompt": "Solve: 3x = 18",
-      "choices": ["3", "6", "15", "21"],
+      "choices": [
+        "3",
+        "6",
+        "15",
+        "21"
+      ],
       "correctIndex": 1,
-      "hint": "Divide both sides by 3."
+      "hint": "Divide both sides by 3.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     },
     {
       "prompt": "Which expression means 'five more than a number'?",
-      "choices": ["x - 5", "5x", "x + 5", "x / 5"],
+      "choices": [
+        "x - 5",
+        "5x",
+        "x + 5",
+        "x / 5"
+      ],
       "correctIndex": 2,
-      "hint": "More than means addition."
+      "hint": "More than means addition.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     },
     {
       "prompt": "If y - 4 = 10, what is y?",
-      "choices": ["6", "10", "14", "40"],
+      "choices": [
+        "6",
+        "10",
+        "14",
+        "40"
+      ],
       "correctIndex": 2,
-      "hint": "Add 4 to both sides."
+      "hint": "Add 4 to both sides.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     }
   ]
 }

@@ -1,0 +1,40 @@
+{
+  "subject": "ela",
+  "grade": 6,
+  "language": "en",
+  "title": "Summarizing a Passage",
+  "topic": "summarizing",
+  "content": "Summarizing a Passage\n\nWhat is a Summary?\n\nA summary is a short version of a longer text. It includes only the most important ideas in your own words, in the same order as the original.\n\nElements of a Good Summary\n\n1. Tells who or what the passage is about\n2. Includes only the main ideas (not every detail)\n3. Uses your own words\n4. Is much shorter than the original (usually 1-3 sentences)\n5. Keeps the same order as the original\n\nHow to Summarize\n\nStep 1: Read carefully and understand the text\nStep 2: Ask — What is this mostly about?\nStep 3: Find the key ideas that support this main point\nStep 4: Write 1-3 sentences that combine these ideas\nStep 5: Check — Does this sound like the original?\n\nWhat NOT to Include\n\n• Your opinions or feelings\n• Minor details\n• Examples (unless crucial)\n• Exact wording from the passage (unless a quote)\n\nPractice Summary\n\nOriginal: \"On Monday, Sarah woke up at 7 AM. She ate breakfast and brushed her teeth. Then she walked to school. She had math class first. In math, they learned about fractions. After lunch, they had science. Sarah learned that plants need sunlight. She walked home at 3 PM.\"\n\nSummary: On Monday, Sarah went to school where she learned about fractions and plants. She walked home at 3 PM.\n\nWhy This Works\n\n✓ Focuses on main events\n✓ Omits routine details\n✓ Stays in order\n✓ Much shorter than original",
+  "questions": [
+    {
+      "prompt": "Which of these is the best summary of a story where a boy finds a puppy, names it, and takes it home?",
+      "choices": ["The boy finds a puppy and names it", "The boy finds a lost puppy and decides to care for it as his new pet", "The boy's mom said no pets", "The puppy was very cute"],
+      "correctIndex": 1,
+      "hint": "Include the main action and outcome"
+    },
+    {
+      "prompt": "What should NOT be included in a summary?",
+      "choices": ["The main idea", "The author's opinion", "Key events", "Who/what is involved"],
+      "correctIndex": 1,
+      "hint": "Keep only facts, not opinions"
+    },
+    {
+      "prompt": "A passage has 8 paragraphs. How long should the summary be?",
+      "choices": ["1-3 sentences", "8 paragraphs", "Half the passage", "As long as needed"],
+      "correctIndex": 0,
+      "hint": "Summaries are short"
+    },
+    {
+      "prompt": "When summarizing in order, what should you follow?",
+      "choices": ["Your opinion", "The passage's order", "Longest to shortest", "Alphabetical"],
+      "correctIndex": 1,
+      "hint": "Keep the original structure"
+    },
+    {
+      "prompt": "Should a summary use exact words from the original?",
+      "choices": ["Yes, always", "Yes, for vocabulary words", "No, use your own words", "Depends on length"],
+      "correctIndex": 2,
+      "hint": "Summaries are in your own words"
+    }
+  ]
+}

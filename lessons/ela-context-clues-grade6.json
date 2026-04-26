@@ -7,33 +7,73 @@
   "questions": [
     {
       "prompt": "What are context clues?",
-      "choices": ["Words that help explain meaning", "Only punctuation marks", "Random letters", "Page numbers"],
+      "choices": [
+        "Words that help explain meaning",
+        "Only punctuation marks",
+        "Random letters",
+        "Page numbers"
+      ],
       "correctIndex": 0,
-      "hint": "Look around the unknown word."
+      "hint": "Look around the unknown word.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     },
     {
       "prompt": "In the sentence 'The room was frigid, or very cold,' what does frigid mean?",
-      "choices": ["Hot", "Cold", "Bright", "Loud"],
+      "choices": [
+        "Hot",
+        "Cold",
+        "Bright",
+        "Loud"
+      ],
       "correctIndex": 1,
-      "hint": "The sentence gives the definition."
+      "hint": "The sentence gives the definition.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     },
     {
       "prompt": "Which clue type uses a word with similar meaning?",
-      "choices": ["Synonym", "Antonym", "Number", "Title"],
+      "choices": [
+        "Synonym",
+        "Antonym",
+        "Number",
+        "Title"
+      ],
       "correctIndex": 0,
-      "hint": "Similar meaning means synonym."
+      "hint": "Similar meaning means synonym.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     },
     {
       "prompt": "In 'Unlike his noisy brother, Omar was quiet,' what does quiet contrast with?",
-      "choices": ["Noisy", "Brother", "Omar", "Unlike"],
+      "choices": [
+        "Noisy",
+        "Brother",
+        "Omar",
+        "Unlike"
+      ],
       "correctIndex": 0,
-      "hint": "Look for the opposite idea."
+      "hint": "Look for the opposite idea.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     },
     {
       "prompt": "What should you do when you find an unfamiliar word?",
-      "choices": ["Skip the whole passage", "Use nearby clues", "Always guess randomly", "Stop reading forever"],
+      "choices": [
+        "Skip the whole passage",
+        "Use nearby clues",
+        "Always guess randomly",
+        "Stop reading forever"
+      ],
       "correctIndex": 1,
-      "hint": "The surrounding sentence can help."
+      "hint": "The surrounding sentence can help.",
+      "answered": false,
+      "correct": false,
+      "difficulty": 1
     }
   ]
 }
