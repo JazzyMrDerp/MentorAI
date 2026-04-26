@@ -4,12 +4,13 @@ import { seedLessons, getLessons, createProfile } from './db';
 import { renderOnboarding, state as onboardingState } from './screens/onboarding.ts';
 import { renderDashboard } from './screens/dashboard.ts';
 import { renderSubjectPage, renderProgressPlaceholder, renderSettingsPlaceholder } from './screens/subject.ts';
-import { renderLessonScreen } from './screens/lesson.ts';
+import { renderLessonScreen, type TutorMessage } from './screens/lesson.ts'; // ← added TutorMessage
 import { renderSidebar } from './components/sidebar.ts';
+import { getTutorResponse } from './gemini.ts'; // ← new
 import type { StudentProfile, Lesson, Grade, Language, Subject } from './types';
 
+
 // ── Event Delegation ─────────────────────────────────────────────────────────
-// Handle all clicks via delegation on document
 document.addEventListener('click', (e) => {
   const target = e.target as HTMLElement;
   const button = target.closest('[data-page]') || target.closest('[data-action]') || target.closest('[data-route]');
@@ -28,6 +29,7 @@ document.addEventListener('click', (e) => {
     handleActionClick(_action);
   }
 });
+
 
 async function handleRouteClick(page: string): Promise<void> {
   if (page === 'dashboard') {
@@ -56,6 +58,7 @@ async function handleRouteClick(page: string): Promise<void> {
   }
 }
 
+
 function handleActionClick(_action: string): void {
   void _action;
   if (_action.startsWith('start-lesson-')) {
@@ -67,6 +70,7 @@ function handleActionClick(_action: string): void {
     }
   } else if (_action === 'back') {
     if (currentPage === 'lesson') {
+      tutorMessages = []; // ← reset chat on back
       currentPage = currentSubject as Page;
       currentLessonId = null;
     } else {
@@ -84,44 +88,53 @@ function handleActionClick(_action: string): void {
   }
 }
 
+
 // ── App state ─────────────────────────────────────────────────────────
 
 type Page = 'dashboard' | 'onboarding' | 'lesson' | 'progress' | 'settings' | 'math' | 'ela';
 
 let currentPage: Page = 'onboarding';
-// Routing state - used for tracking
+
 declare global {
   interface Window {
     DEBUG_SUBJECT: Subject;
   }
 }
+
 let currentSubject: Subject = 'math';
 let currentLessonId: number | null = null;
-// Expose for debugging in browser console
+
 Object.defineProperty(window, 'DEBUG_SUBJECT', {
   get: () => currentSubject,
   set: (v) => { currentSubject = v; },
   configurable: true
 });
+
 let app: HTMLElement;
 let profile: StudentProfile | null = null;
 let lessons: Lesson[] = [];
+
+// ── Chat state ────────────────────────────────────────────────────────────────
+let tutorMessages: TutorMessage[] = [];
+let isTutorThinking = false;
+
+function uniqueMessageId(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 
 // ── App boot ──────────────────────────────────────────────────────────────────
 
 async function init(): Promise<void> {
   app = document.querySelector('#app')!;
-  
   await seedLessons();
-  
-  // Always start with onboarding for now
   currentPage = 'onboarding';
   profile = null;
-  
   console.log('[MentorAI] Boot complete');
   render();
   setupOnboardingHandlers();
 }
+
 
 function render(): void {
   app.innerHTML = '';
@@ -133,7 +146,6 @@ function render(): void {
     return;
   }
   
-  // Dashboard with sidebar
   const layout = document.createElement('div');
   layout.className = 'app-layout';
   
@@ -178,9 +190,7 @@ function render(): void {
         currentPage = 'lesson';
         render();
       },
-      onStartBoss: (subject) => {
-        void subject;
-      },
+      onStartBoss: (subject) => { void subject; },
       onGoBack: () => {
         currentPage = 'dashboard';
         render();
@@ -197,9 +207,7 @@ function render(): void {
         currentPage = 'lesson';
         render();
       },
-      onStartBoss: (subject) => {
-        void subject;
-      },
+      onStartBoss: (subject) => { void subject; },
       onGoBack: () => {
         currentPage = 'dashboard';
         render();
@@ -208,13 +216,27 @@ function render(): void {
   } else if (currentPage === 'lesson' && currentLessonId) {
     const selectedLesson = lessons.find(l => l.id === currentLessonId);
     if (selectedLesson) {
+
+      // Seed welcome message when entering a lesson fresh
+      if (tutorMessages.length === 0) {
+        tutorMessages = [
+          {
+            id: uniqueMessageId(),
+            role: 'mentor',
+            text: `Hi! I'm your MentorAI tutor. Today we're working on "${selectedLesson.title}". Ask me anything! 🧠`,
+          },
+        ];
+      }
+
       mainContent = renderLessonScreen({
         lesson: selectedLesson,
         profile,
         isOnline,
-        messages: [],
-        isTutorThinking: false,
+        messages: tutorMessages,         // ← was []
+        isTutorThinking: isTutorThinking, // ← was false
         onGoBack: () => {
+          tutorMessages = [];             // ← reset chat
+          isTutorThinking = false;
           currentPage = currentSubject as Page;
           currentLessonId = null;
           render();
@@ -223,8 +245,33 @@ function render(): void {
           console.log('Take Quiz clicked for lesson:', currentLessonId);
         },
         onSendMessage: async (prompt) => {
-          console.log('Tutor message:', prompt);
-        }
+          tutorMessages = [
+            ...tutorMessages,
+            { id: uniqueMessageId(), role: 'student', text: prompt },
+          ];
+          isTutorThinking = true;
+          render();
+
+          try {
+            const reply = await getTutorResponse(
+              prompt,
+              selectedLesson.content,
+              selectedLesson.grade,
+            );
+            tutorMessages = [
+              ...tutorMessages,
+              { id: uniqueMessageId(), role: 'mentor', text: reply },
+            ];
+          } catch {
+            tutorMessages = [
+              ...tutorMessages,
+              { id: uniqueMessageId(), role: 'mentor', text: "Sorry, I couldn't connect. Try again in a moment! 🔌" },
+            ];
+          } finally {
+            isTutorThinking = false;
+            render();
+          }
+        },
       });
     } else {
       currentPage = currentSubject as Page;
@@ -237,7 +284,6 @@ function render(): void {
   } else if (currentPage === 'settings') {
     mainContent = renderSettingsPlaceholder();
   } else {
-    // Default to dashboard
     mainContent = renderDashboard({
       profile,
       lessons,
@@ -256,8 +302,8 @@ function render(): void {
   app.appendChild(layout);
 }
 
+
 function setupOnboardingHandlers(): void {
-  // Wait for DOM to be ready
   setTimeout(() => {
     const nicknameInput = document.getElementById('nickname-input');
     const startBtn = document.getElementById('start-btn');
@@ -299,6 +345,7 @@ function setupOnboardingHandlers(): void {
     });
   }, 100);
 }
+
 
 init().catch(console.error);
 
