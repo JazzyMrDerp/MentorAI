@@ -1,6 +1,7 @@
 import type { StudentProfile, Lesson, Progress, Subject } from '../types';
 import { escapeHtml } from '../utils/escape';
 import { calculateLevel } from '../utils/level';
+import { lessonAttempts } from '../utils/progress';
 
 interface ProgressPageOptions {
   profile: StudentProfile | null;
@@ -28,7 +29,9 @@ function calcSubjectStats(lessons: Lesson[], subject: Subject, progress: Progres
     ? progressForSubject.reduce((sum, p) => sum + p.xpEarned, 0) 
     : 0;
 
-  const uniqueCompletedLessons = new Set(progressForSubject.map(p => p.lessonId)).size;
+  // Boss rows map to no single lesson, so they must not land in this Set — the
+  // old 99999 sentinel did, and inflated the count by one.
+  const uniqueCompletedLessons = new Set(lessonAttempts(progressForSubject).map(p => p.lessonId)).size;
 
   const questionsAnswered = progressForSubject.reduce((sum, p) => sum + p.attempts, 0);
   const correctAnswers = progressForSubject.filter(p => p.score >= 70).length;
@@ -62,7 +65,7 @@ export function renderProgressPage(options: ProgressPageOptions): HTMLElement {
   const elaXP = profile?.elaXP ?? 0;
 
   const allLessons = lessons;
-  const completedLessons = new Set(progress.map(p => p.lessonId)).size;
+  const completedLessons = new Set(lessonAttempts(progress).map(p => p.lessonId)).size;
   const totalQuestions = allLessons.reduce((sum, l) => sum + l.questions.length, 0);
   const totalAnswered = progress.reduce((sum, p) => sum + p.attempts, 0);
   const totalCorrect = progress.filter(p => p.score >= 70).length;

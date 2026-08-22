@@ -14,7 +14,7 @@ import type { StudentProfile, Lesson, Grade, Language, Subject, Progress } from 
 import { renderLessonScreen, type TutorMessage } from './screens/lesson';  // ← NEW: added TutorMessage
 import { getTutorResponse } from './gemini';  // ← NEW
 import { startQuiz, renderQuizScreen, renderQuizSummary, selectAnswer, useHint, goToNextQuestion, submitQuiz, getQuizProgress, calculateScore, calculateXP, getCurrentQuestion, getCurrentQuestionIndex } from './screens/quiz';
-import { startBossBattle, renderBossScreen, renderBossSummary, selectBossAnswer, useBossHint, goToNextBossQuestion, calculateBossScore, calculateBossXP, isBossDefeated } from './screens/boss';
+import { startBossBattle, renderBossScreen, renderBossSummary, selectBossAnswer, useBossHint, goToNextBossQuestion, calculateBossScore, calculateBossXP, isBossDefeated, getCurrentBossEntry } from './screens/boss';
 
 
 // ── App State ─────────────────────────────────────────────────────────────────
@@ -26,6 +26,18 @@ let currentSubject: Subject = 'math';
 let currentLessonId: number | null = null;
 let currentQuiz: ReturnType<typeof getQuizProgress> = null;
 let currentBoss: ReturnType<typeof startBossBattle> | null = null;
+/**
+ * Whether the current boss battle has already been settled.
+ *
+ * Defeating the boss arms two paths to the summary: the choice handler
+ * auto-fires onFinish 500ms after the killing answer, and the Next button — now
+ * relabelled "Boss Defeated!" — fires it on click. Pressing Next inside that
+ * window ran both, and each wrote its own progress row. That was survivable
+ * while XP lived in memory and died with the reload; now that the totals are
+ * summed from these rows it is a durable double-award. onTimeUp is a third path
+ * into the same place.
+ */
+let bossSettled = false;
 let app: HTMLElement;
 let profile: StudentProfile | null = null;
 let lessons: Lesson[] = [];
@@ -272,19 +284,26 @@ async function render(): Promise<void> {
     const subjectLessons = lessons.filter(l => l.subject === currentSubject);
     if (subjectLessons.length > 0) {
       const bossState = currentBoss || startBossBattle(subjectLessons, currentSubject);
-      if (!currentBoss) currentBoss = bossState;
+      if (!currentBoss) {
+        currentBoss = bossState;
+        bossSettled = false;
+      }
       const currentProfile = profile;
 
       const handleBossNext = async () => {
+        if (bossSettled) return;
         const defeated = isBossDefeated();
         if (defeated) {
           const bossScore = calculateBossScore();
           const answered = bossState.answers.length;
           const bossXP = calculateBossXP(bossScore, answered);
+          // Set before awaiting: a second caller must not slip through while the
+          // first is still inside saveProgress.
+          bossSettled = true;
           if (currentProfile) {
             await saveProgress({
               nickname: currentProfile.nickname,
-              lessonId: 99999,
+              kind: 'boss',
               lessonTitle: `${currentSubject} Boss Battle`,
               subject: currentSubject as Subject,
               score: bossScore,
@@ -310,10 +329,13 @@ async function render(): Promise<void> {
           const bossScore = calculateBossScore();
           const answered = bossState.answers.length;
           const bossXP = calculateBossXP(bossScore, answered);
+          // Set before awaiting: a second caller must not slip through while the
+          // first is still inside saveProgress.
+          bossSettled = true;
           if (currentProfile) {
             await saveProgress({
               nickname: currentProfile.nickname,
-              lessonId: 99999,
+              kind: 'boss',
               lessonTitle: `${currentSubject} Boss Battle`,
               subject: currentSubject as Subject,
               score: bossScore,
@@ -335,11 +357,16 @@ async function render(): Promise<void> {
 
       mainContent = renderBossScreen({
         subject: currentSubject,
-        onSelectAnswer: (index) => { selectBossAnswer(index); },
+        onSelectAnswer: (index) => {
+          selectBossAnswer(index);
+          void recordBossAnswer(index);
+        },
         onUseHint: () => { useBossHint(); },
         onNext: handleBossNext,
         onFinish: () => { handleBossNext(); },
         onTimeUp: () => {
+          if (bossSettled) return;
+          bossSettled = true;
           app.innerHTML = '';
           app.appendChild(
             renderBossSummary(0, 0, bossState.hintsUsed, bossState.answers.length, () => {
@@ -460,12 +487,39 @@ async function recordAnswer(lesson: Lesson, answerIndex: number): Promise<void> 
  * increment here. The counters that used to be bumped in memory at this point
  * were never written to disk and reset to zero on every reload.
  */
+/**
+ * Record a boss answer against the lesson the question actually came from.
+ *
+ * This is the same call the quiz path makes, and it is what puts the boss battle
+ * on the sync engine: markQuestionAnswered enqueues a replace_question when the
+ * answer is correct and below max difficulty, and a generate_lesson once every
+ * question in that lesson is right. Until the pool carried a lesson id there was
+ * nothing to attribute an answer to, so half the app never fed the queue.
+ *
+ * Fire-and-forget for the same reason as the quiz: answering must stay instant.
+ */
+async function recordBossAnswer(answerIndex: number): Promise<void> {
+  const entry = getCurrentBossEntry();
+  if (!entry) return;
+
+  try {
+    await markQuestionAnswered(
+      entry.lessonId,
+      entry.questionIndex,
+      answerIndex === entry.question.correctIndex
+    );
+  } catch (err) {
+    console.error('[Boss] Failed to record answer:', err);
+  }
+}
+
 async function saveProgressRecord(lesson: Lesson, score: number, xpEarned: number, hintsUsed: number): Promise<void> {
   const currentProfile = profile;
   if (!currentProfile) return;
 
   await saveProgress({
     nickname: currentProfile.nickname,
+    kind: 'quiz',
     lessonId: lesson.id!,
     lessonTitle: lesson.title,
     subject: lesson.subject,

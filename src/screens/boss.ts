@@ -1,11 +1,33 @@
 import type { Lesson, Question, Subject } from '../types';
 import { escapeHtml } from '../utils/escape';
 
+/**
+ * One question in the boss pool, with the lesson it came from.
+ *
+ * The pool used to be a bare Question[] built by flatMap, which threw away which
+ * lesson each question belonged to — so a boss answer could not be attributed and
+ * never reached markQuestionAnswered. Keeping the lesson id and the question's
+ * index within that lesson is what lets the boss path feed the sync queue on the
+ * same terms as the quiz path.
+ */
+export interface BossQuestion {
+  question:      Question;
+  lessonId:      number;
+  questionIndex: number;
+}
+
 export interface BossState {
   subject: Subject;
-  questions: Question[];
+  questions: BossQuestion[];
   currentQuestionIndex: number;
+  /**
+   * Every answer given, in order — an attempt log, not one slot per question.
+   * The boss cycles back through the pool until its health is gone, so the same
+   * question can legitimately be answered more than once in a battle.
+   */
   answers: (number | null)[];
+  /** The answer to the question on screen right now, cleared on advance. */
+  answeredCurrent: number | null;
   hintsUsed: number;
   startTime: number;
   hintsRemaining: number;
@@ -28,18 +50,25 @@ export interface BossRenderOptions {
 }
 
 export function startBossBattle(lessons: Lesson[], subject: Subject): BossState {
-  const allQuestions = lessons
-    .filter(l => l.subject === subject)
-    .flatMap(l => l.questions);
-  
+  // An unsaved lesson has no id to attribute an answer to, so it cannot join the
+  // pool. In practice every lesson here came out of IndexedDB and has one.
+  const pool = lessons
+    .filter(l => l.subject === subject && l.id !== undefined)
+    .flatMap(l => l.questions.map((question, questionIndex) => ({
+      question,
+      lessonId: l.id as number,
+      questionIndex,
+    })));
+
   // Shuffle questions and use all of them (not just 10)
-  const bossQuestions = [...allQuestions].sort(() => Math.random() - 0.5);
-  
+  const bossQuestions = [...pool].sort(() => Math.random() - 0.5);
+
   currentBoss = {
     subject,
     questions: bossQuestions,
     currentQuestionIndex: 0,
     answers: [],
+    answeredCurrent: null,
     hintsUsed: 0,
     startTime: Date.now(),
     hintsRemaining: 3,
@@ -52,7 +81,18 @@ export function startBossBattle(lessons: Lesson[], subject: Subject): BossState 
   return currentBoss;
 }
 
+/** The question on screen, for rendering. */
 export function getCurrentBossQuestion(): Question | null {
+  return getCurrentBossEntry()?.question ?? null;
+}
+
+/**
+ * The question on screen together with where it came from.
+ *
+ * main.ts needs the lesson id and the question's index within that lesson to
+ * record the answer; the render path only needs the question itself.
+ */
+export function getCurrentBossEntry(): BossQuestion | null {
   if (!currentBoss) return null;
   return currentBoss.questions[currentBoss.currentQuestionIndex] ?? null;
 }
@@ -69,21 +109,29 @@ export function getBossTotalQuestions(): number {
 
 export function selectBossAnswer(answerIndex: number): void {
   if (!currentBoss) return;
-  const currentQ = currentBoss.questions[currentBoss.currentQuestionIndex];
-  if (answerIndex === currentQ.correctIndex) {
+  const entry = currentBoss.questions[currentBoss.currentQuestionIndex];
+  if (answerIndex === entry.question.correctIndex) {
     currentBoss.correctAnswers++;
     // Boss health goes DOWN when you answer correctly!
     const healthLost = 100 / currentBoss.questions.length;
     currentBoss.currentHealth = Math.max(0, currentBoss.currentHealth - healthLost);
   }
-  // Track answer (push to handle cycling through questions)
+  // Append to the attempt log, and remember it as the answer to the question
+  // currently on screen so a re-render can restore the selection.
   currentBoss.answers.push(answerIndex);
+  currentBoss.answeredCurrent = answerIndex;
 }
 
+/**
+ * The answer to the question on screen, or null if it has not been answered.
+ *
+ * This used to return the last entry in the attempt log regardless of which
+ * question was showing. Advancing re-rendered the screen, so a fresh question
+ * arrived with the previous question's choice already highlighted and the Next
+ * button already enabled — the student could skip it without answering.
+ */
 export function getBossSelectedAnswer(): number | null {
-  if (!currentBoss || currentBoss.answers.length === 0) return null;
-  // Return the last answer (current question's answer)
-  return currentBoss.answers[currentBoss.answers.length - 1];
+  return currentBoss?.answeredCurrent ?? null;
 }
 
 export function useBossHint(): boolean {
@@ -94,9 +142,7 @@ export function useBossHint(): boolean {
 }
 
 export function getBossHint(): string | null {
-  if (!currentBoss) return null;
-  const currentQ = currentBoss.questions[currentBoss.currentQuestionIndex];
-  return currentQ.hint ?? null;
+  return getCurrentBossEntry()?.question.hint ?? null;
 }
 
 export function goToNextBossQuestion(): boolean {
@@ -107,6 +153,7 @@ export function goToNextBossQuestion(): boolean {
   }
   // Cycle through questions (loop back to start if at end)
   currentBoss.currentQuestionIndex = (currentBoss.currentQuestionIndex + 1) % currentBoss.questions.length;
+  currentBoss.answeredCurrent = null;
   return true;
 }
 

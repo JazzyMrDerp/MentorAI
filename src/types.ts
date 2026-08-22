@@ -55,7 +55,14 @@ export interface Lesson {
 export interface Progress {
   id?:          number;    // Auto-assigned by Dexie
   nickname:    string;    // Student's chosen nickname (no real names — privacy)
-  lessonId:    number;    // References Lesson.id
+  /**
+   * Which kind of attempt this row records. Boss battles draw their questions
+   * from every lesson in a subject, so there is no single lesson to point at.
+   * Older rows predate this field — read them through isBossAttempt() in
+   * utils/progress.ts rather than testing it directly.
+   */
+  kind?:       'quiz' | 'boss';
+  lessonId?:   number;    // References Lesson.id — absent on boss battles
   lessonTitle: string;    // Stored directly in case the lesson gets deleted later
   subject:     Subject;
   score:       number;    // 0–100 percentage score

@@ -6,6 +6,7 @@
 
 import type { Lesson, Progress, StudentProfile, Subject } from '../types.ts';
 import { escapeHtml } from '../utils/escape';
+import { isBossAttempt, lessonAttempts } from '../utils/progress';
 
 export interface DashboardOptions {
   profile: StudentProfile | null;
@@ -19,9 +20,6 @@ export interface DashboardOptions {
 
 type LessonState = 'done' | 'in progress' | 'up next';
 type Filter = 'all' | Subject;
-
-/** Boss battles write a Progress row under this sentinel — never a real lesson. */
-const BOSS_LESSON_ID = 99999;
 
 const SUBJECT_LABEL: Record<Subject, string> = { math: 'Math', ela: 'ELA' };
 
@@ -48,7 +46,7 @@ export function renderDashboard(options: DashboardOptions): HTMLElement {
   // Lessons the student has finished at least once. The boss sentinel would
   // otherwise inflate every count on this page.
   const completed = new Set(
-    progress.filter((p) => p.lessonId !== BOSS_LESSON_ID).map((p) => p.lessonId)
+    lessonAttempts(progress).map((p) => p.lessonId)
   );
 
   function stateOf(lesson: Lesson): LessonState {
@@ -66,7 +64,7 @@ export function renderDashboard(options: DashboardOptions): HTMLElement {
   const nickname = profile?.nickname ?? 'Student';
   const streak = profile?.streak ?? 0;
 
-  const realProgress = progress.filter((p) => p.lessonId !== BOSS_LESSON_ID);
+  const realProgress = progress.filter((p) => !isBossAttempt(p));
   const avgScore = realProgress.length
     ? Math.round(realProgress.reduce((sum, p) => sum + p.score, 0) / realProgress.length)
     : 0;
