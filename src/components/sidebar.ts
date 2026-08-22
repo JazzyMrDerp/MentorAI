@@ -1,15 +1,12 @@
 import type { StudentProfile } from '../types.ts';
 import { escapeHtml } from '../utils/escape';
+import { calculateLevel } from '../utils/level';
 
 interface SidebarOptions {
   profile: StudentProfile | null;
   currentPage: string;
   isOnline: boolean;
   onNavigate: (page: string) => void;
-}
-
-function getLevelFromXP(xp: number): number {
-  return Math.floor(xp / 200) + 1;
 }
 
 export function renderSidebar(options: SidebarOptions): HTMLElement {
@@ -19,7 +16,7 @@ export function renderSidebar(options: SidebarOptions): HTMLElement {
   const nickname = options.profile?.nickname ?? 'Student';
   const initials = nickname.substring(0, 2).toUpperCase();
   const totalXP = options.profile?.totalXP ?? 0;
-  const currentLevel = getLevelFromXP(totalXP);
+  const currentLevel = calculateLevel(totalXP);
   
   const navItems = [
     { id: 'dashboard', icon: '🏠', label: 'Dashboard' },

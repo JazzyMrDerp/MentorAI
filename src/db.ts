@@ -6,6 +6,7 @@
 import Dexie, { type EntityTable } from 'dexie';
 import type { Lesson, Question, Progress, StudentProfile, SyncQueueItem, Subject, Grade, Language } from './types';
 import { topicCount } from './topics';
+import { calculateLevel } from './utils/level';
 
 // ── Database Setup ────────────────────────────────────────────────────────────
 
@@ -235,6 +236,35 @@ export async function getProgressBySubject(
     .toArray();
 }
 
+/**
+ * Sum a student's earned XP out of the progress table, split by subject.
+ *
+ * The totalXP/mathXP/elaXP columns on StudentProfile are a cache of this, not a
+ * second source of truth. A progress row is written for every completed quiz and
+ * boss battle, so the totals can always be rebuilt from them — which is what makes
+ * the cache safe to overwrite on every refresh rather than increment.
+ *
+ * It previously was incremented, in memory only, and never written back: XP reset
+ * to zero on every reload while the dashboard (which already derived its number
+ * from these rows) kept showing the real one.
+ */
+export async function getXPTotals(nickname: string): Promise<{
+  totalXP: number;
+  mathXP:  number;
+  elaXP:   number;
+}> {
+  const rows = await db.progress.where('nickname').equals(nickname).toArray();
+
+  let mathXP = 0;
+  let elaXP  = 0;
+  for (const row of rows) {
+    if (row.subject === 'math') mathXP += row.xpEarned;
+    else                        elaXP  += row.xpEarned;
+  }
+
+  return { totalXP: mathXP + elaXP, mathXP, elaXP };
+}
+
 // ── Student Profile ───────────────────────────────────────────────────────────
 
 /**
@@ -287,13 +317,6 @@ export async function updateProfile(
     ...updates,
     currentLevel: newLevel,
   });
-}
-export function calculateLevel(xp: number): number {
-  if (xp >= 1000) return 5;
-  if (xp >= 700) return 4;
-  if (xp >= 450) return 3;
-  if (xp >= 250) return 2;
-  return 1;
 }
 
 export function calculateStreak(lastActive: string, currentStreak: number): number {

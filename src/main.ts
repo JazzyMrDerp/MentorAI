@@ -1,7 +1,8 @@
 // src/main.ts
 import './style.css';
 import { escapeHtml } from './utils/escape';
-import { seedLessons, getLessonsForGrade, createProfile, getCurrentProfile, getProgressForStudent, saveProgress, markQuestionAnswered, updateProfile, calculateStreak, getPendingSyncItems } from './db';
+import { seedLessons, getLessonsForGrade, createProfile, getCurrentProfile, getProgressForStudent, saveProgress, markQuestionAnswered, updateProfile, calculateStreak, getPendingSyncItems, getXPTotals } from './db';
+import { calculateLevel } from './utils/level';
 import { initOfflineSync, registerSyncCallbacks, getConnectionStatus, isOnline as isNetworkOnline } from '../utils/offline';
 import { generateNextLesson, remainingTopics } from './generate';
 import { renderOnboarding, type OnboardingData } from './screens/onboarding';
@@ -70,19 +71,33 @@ function updateChatUI(): void {  // ← NEW: updates only the chat div, never re
  */
 async function refreshStudentData(): Promise<void> {
   if (!profile) return;
+  const nickname   = profile.nickname;
   lessons          = await getLessonsForGrade(profile.grade, 'en');
-  recentProgress   = await getProgressForStudent(profile.nickname);
+  recentProgress   = await getProgressForStudent(nickname);
   pendingSyncCount = (await getPendingSyncItems()).length;
+
+  // XP is recomputed from the progress rows rather than accumulated in memory.
+  // Every screen that shows a total now reads the same derived value, and it
+  // survives a reload because the rows it comes from do. The profile columns are
+  // written back so anything reading the stored row — updateProfile's level
+  // calculation included — agrees with what is on screen.
+  const xp = await getXPTotals(nickname);
+  profile  = { ...profile, ...xp, currentLevel: calculateLevel(xp.totalXP) };
+  await updateProfile(nickname, xp);
 }
 
 async function navigateTo(page: string): Promise<void> {
   if (page === 'math' || page === 'ela') {
     currentSubject = page as Subject;
     if (profile) {
-      lessons = await getLessonsForGrade(profile.grade, 'en');
+      // Full refresh, not just the lessons: the sidebar and the subject header
+      // both show a level derived from XP, and arriving here straight off a quiz
+      // summary is the most likely moment for that number to have just changed.
+      const grade = profile.grade;
+      await refreshStudentData();
       // Resolve exhaustion on arrival so the card never offers a topic that
       // isn't there — the previous visit may have used the last one.
-      generateState = (await remainingTopics(currentSubject, profile.grade)) > 0 ? 'idle' : 'exhausted';
+      generateState = (await remainingTopics(currentSubject, grade)) > 0 ? 'idle' : 'exhausted';
     }
     currentPage = page as Page;
   } else if (page === 'dashboard' || page === 'progress' || page === 'settings') {
@@ -278,19 +293,12 @@ async function render(): Promise<void> {
               hintsUsed: bossState.hintsUsed,
               completedAt: new Date().toISOString(),
             });
-            currentProfile.totalXP += bossXP;
-            if (currentSubject === 'math') {
-              currentProfile.mathXP = (currentProfile.mathXP ?? 0) + bossXP;
-            } else {
-              currentProfile.elaXP = (currentProfile.elaXP ?? 0) + bossXP;
-            }
           }
           app.innerHTML = '';
           app.appendChild(
             renderBossSummary(bossScore, bossXP, bossState.hintsUsed, answered, () => {
-              currentPage = 'dashboard';
               currentBoss = null;
-              render();
+              void navigateTo('dashboard');
             })
           );
           return;
@@ -314,19 +322,12 @@ async function render(): Promise<void> {
               hintsUsed: bossState.hintsUsed,
               completedAt: new Date().toISOString(),
             });
-            currentProfile.totalXP += bossXP;
-            if (currentSubject === 'math') {
-              currentProfile.mathXP = (currentProfile.mathXP ?? 0) + bossXP;
-            } else {
-              currentProfile.elaXP = (currentProfile.elaXP ?? 0) + bossXP;
-            }
           }
           app.innerHTML = '';
           app.appendChild(
             renderBossSummary(bossScore, bossXP, bossState.hintsUsed, answered, () => {
-              currentPage = 'dashboard';
               currentBoss = null;
-              render();
+              void navigateTo('dashboard');
             })
           );
         }
@@ -342,16 +343,14 @@ async function render(): Promise<void> {
           app.innerHTML = '';
           app.appendChild(
             renderBossSummary(0, 0, bossState.hintsUsed, bossState.answers.length, () => {
-              currentPage = 'dashboard';
               currentBoss = null;
-              render();
+              void navigateTo('dashboard');
             })
           );
         },
         onGoBack: () => {
-          currentPage = 'dashboard';
           currentBoss = null;
-          render();
+          void navigateTo('dashboard');
         },
       });
     } else {
@@ -381,9 +380,8 @@ async function render(): Promise<void> {
             app.innerHTML = '';
             app.appendChild(
               renderQuizSummary(score, xpEarned, quizState.hintsUsed, selectedLesson.questions.length, () => {
-                currentPage = currentSubject as Page;
                 currentLessonId = null;
-                render();
+                void navigateTo(currentSubject);
               })
             );
             return;
@@ -456,6 +454,12 @@ async function recordAnswer(lesson: Lesson, answerIndex: number): Promise<void> 
   }
 }
 
+/**
+ * Write the completed attempt. This row is the durable record of the XP earned —
+ * refreshStudentData sums these back into the profile, so there is nothing to
+ * increment here. The counters that used to be bumped in memory at this point
+ * were never written to disk and reset to zero on every reload.
+ */
 async function saveProgressRecord(lesson: Lesson, score: number, xpEarned: number, hintsUsed: number): Promise<void> {
   const currentProfile = profile;
   if (!currentProfile) return;
@@ -471,13 +475,6 @@ async function saveProgressRecord(lesson: Lesson, score: number, xpEarned: numbe
     hintsUsed,
     completedAt: new Date().toISOString(),
   });
-
-  currentProfile.totalXP += xpEarned;
-  if (lesson.subject === 'math') {
-    currentProfile.mathXP = (currentProfile.mathXP ?? 0) + xpEarned;
-  } else {
-    currentProfile.elaXP = (currentProfile.elaXP ?? 0) + xpEarned;
-  }
 }
 
 

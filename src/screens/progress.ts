@@ -1,5 +1,6 @@
 import type { StudentProfile, Lesson, Progress, Subject } from '../types';
 import { escapeHtml } from '../utils/escape';
+import { calculateLevel } from '../utils/level';
 
 interface ProgressPageOptions {
   profile: StudentProfile | null;
@@ -7,10 +8,6 @@ interface ProgressPageOptions {
   recentProgress: Progress[];
   isOnline: boolean;
   onNavigate: (subject: Subject) => void;
-}
-
-function getLevelFromXP(xp: number): number {
-  return Math.floor(xp / 200) + 1;
 }
 
 function calcSubjectStats(lessons: Lesson[], subject: Subject, progress: Progress[]): {
@@ -59,7 +56,7 @@ export function renderProgressPage(options: ProgressPageOptions): HTMLElement {
   const progress = options.recentProgress;
 
   const totalXP = profile?.totalXP ?? 0;
-  const currentLevel = getLevelFromXP(totalXP);
+  const currentLevel = calculateLevel(totalXP);
   const streak = profile?.streak ?? 0;
   const mathXP = profile?.mathXP ?? 0;
   const elaXP = profile?.elaXP ?? 0;

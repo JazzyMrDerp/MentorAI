@@ -1,5 +1,6 @@
 import type { Lesson, StudentProfile, Subject } from '../types';
 import { escapeHtml } from '../utils/escape';
+import { calculateLevel } from '../utils/level';
 
 /** Where the "generate a lesson" card is in its lifecycle. */
 export type GenerateState = 'idle' | 'working' | 'queued' | 'exhausted' | 'busy';
@@ -14,10 +15,6 @@ interface SubjectPageOptions {
   onStartBoss: (subject: Subject) => void;
   onGenerateLesson: () => void;
   onGoBack: () => void;
-}
-
-function getLevelFromXP(xp: number): number {
-  return Math.floor(xp / 200) + 1;
 }
 
 /**
@@ -58,7 +55,7 @@ function generateLabel(options: SubjectPageOptions): string {
 export function renderSubjectPage(options: SubjectPageOptions): HTMLElement {
   const container = document.createElement('div');
   
-  const currentLevel = options.profile ? getLevelFromXP(options.profile.totalXP) : 1;
+  const currentLevel = options.profile ? calculateLevel(options.profile.totalXP) : 1;
   const subjectTitle = options.subject === 'math' ? 'Math' : 'ELA';
   const subjectIcon = options.subject === 'math' ? '📐' : '📖';
   const isMath = options.subject === 'math';
