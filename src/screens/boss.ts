@@ -367,9 +367,14 @@ export function renderBossSummary(
   const container = document.createElement('div');
   container.className = 'app-layout';
   
-  const correct = Math.round((score / (totalQuestions * 100)) * totalQuestions);
-  const grade = score >= totalQuestions * 80 ? 'Legendary!' : score >= totalQuestions * 60 ? 'Boss Slayer!' : score >= totalQuestions * 40 ? 'Great Fight!' : 'Try Again!';
-  const gradeEmoji = score >= totalQuestions * 80 ? '🏆' : score >= totalQuestions * 60 ? '⚔️' : score >= totalQuestions * 40 ? '👍' : '💪';
+  // `score` is already a percentage — calculateBossScore returns 0-100 — so the
+  // count is a fraction of it, and the grade compares against plain thresholds.
+  // Both used to treat it as points out of totalQuestions * 100, which meant a
+  // flawless battle scored 100 and reported "Try Again! Score: 1/10". Display
+  // only; the XP and the progress row were always right.
+  const correct = Math.round((score / 100) * totalQuestions);
+  const grade = score >= 80 ? 'Legendary!' : score >= 60 ? 'Boss Slayer!' : score >= 40 ? 'Great Fight!' : 'Try Again!';
+  const gradeEmoji = score >= 80 ? '🏆' : score >= 60 ? '⚔️' : score >= 40 ? '👍' : '💪';
   
   container.innerHTML = `
     <div class="main-content">

@@ -118,6 +118,18 @@ export function getQuizProgress(): QuizState | null {
   return currentQuiz;
 }
 
+/**
+ * Discard the attempt in progress.
+ *
+ * `#/quiz/:id` mounts only while this state exists, so abandoning a quiz — the
+ * Back button, a sidebar click, a hand-edited hash — has to clear it. Leaving it
+ * behind would let a later visit to that URL resume answers the student had
+ * already walked away from. submitQuiz clears it on the finishing path.
+ */
+export function endQuiz(): void {
+  currentQuiz = null;
+}
+
 export function getQuestionProgress(): { current: number; total: number; answered: number } {
   if (!currentQuiz) return { current: 0, total: 0, answered: 0 };
   return {

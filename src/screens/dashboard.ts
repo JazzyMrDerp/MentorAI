@@ -195,8 +195,6 @@ export function renderDashboard(options: DashboardOptions): HTMLElement {
   }
 
   // ── Listeners ──────────────────────────────────────────────────────────────
-  // Deliberately no data-action/data-page/data-route on anything above: the
-  // global delegator in main.ts intercepts all three and reroutes the click.
 
   const rail = container.querySelector('.lesson-rail') as HTMLElement;
 

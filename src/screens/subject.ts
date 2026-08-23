@@ -64,7 +64,7 @@ export function renderSubjectPage(options: SubjectPageOptions): HTMLElement {
     <div class="main-content">
       <div class="page-center">
         <div class="progress-header">
-          <button class="btn-back" data-action="back">&larr; Back</button>
+          <button class="btn-back" data-back>&larr; Back</button>
           <h1>
             <span class="subject-icon ${isMath ? 'math' : 'ela'}">${subjectIcon}</span>
             ${subjectTitle}
@@ -98,7 +98,7 @@ export function renderSubjectPage(options: SubjectPageOptions): HTMLElement {
                 <div class="lesson-card-title">${escapeHtml(lesson.title)}</div>
                 <div class="lesson-card-meta">Grade ${lesson.grade} • ${lesson.language.toUpperCase()}</div>
                 <div class="lesson-card-questions">${lesson.questions.length} questions</div>
-                <button class="btn-start-lesson ${isMath ? '' : 'ela'}" data-action="start-lesson-${lesson.id}">Start Lesson</button>
+                <button class="btn-start-lesson ${isMath ? '' : 'ela'}" data-start-lesson="${lesson.id}">Start Lesson</button>
               </div>
             `).join('') : `
               <div class="empty-state">
@@ -125,7 +125,7 @@ export function renderSubjectPage(options: SubjectPageOptions): HTMLElement {
           <h2>${subjectTitle} Boss Battle</h2>
           <div class="mastery-card">
             <p>Test your skills against the ${subjectTitle} boss!</p>
-            <button class="btn-boss ${isMath ? '' : 'ela'}" data-action="boss-${options.subject}">
+            <button class="btn-boss ${isMath ? '' : 'ela'}" data-start-boss>
               🔥 Start ${subjectTitle} Boss
             </button>
           </div>
@@ -134,24 +134,21 @@ export function renderSubjectPage(options: SubjectPageOptions): HTMLElement {
     </div>
   `;
   
-  // Wire up Back button
-  const backBtn = container.querySelector('[data-action="back"]');
-  backBtn?.addEventListener('click', () => options.onGoBack());
+  container.querySelector('[data-back]')
+    ?.addEventListener('click', () => options.onGoBack());
 
-  // Wire up Start Lesson buttons
-  options.lessons.forEach(lesson => {
-    const btn = container.querySelector(`[data-action="start-lesson-${lesson.id}"]`);
-    btn?.addEventListener('click', () => options.onSelectLesson(lesson.id as number));
+  container.querySelectorAll<HTMLButtonElement>('[data-start-lesson]').forEach(btn => {
+    const lessonId = Number(btn.dataset.startLesson);
+    if (Number.isInteger(lessonId)) {
+      btn.addEventListener('click', () => options.onSelectLesson(lessonId));
+    }
   });
 
-  // Wire up Boss button
-  const bossBtn = container.querySelector(`[data-action="boss-${options.subject}"]`);
-  bossBtn?.addEventListener('click', () => options.onStartBoss(options.subject));
+  container.querySelector('[data-start-boss]')
+    ?.addEventListener('click', () => options.onStartBoss(options.subject));
 
-  // data-generate, not data-action: the global delegator in main.ts treats every
-  // data-action as a route and would fire a second render mid-generation.
-  const generateBtn = container.querySelector('[data-generate]');
-  generateBtn?.addEventListener('click', () => options.onGenerateLesson());
+  container.querySelector('[data-generate]')
+    ?.addEventListener('click', () => options.onGenerateLesson());
 
   return container;
 }

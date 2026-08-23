@@ -219,7 +219,7 @@ export function renderProgressPage(options: ProgressPageOptions): HTMLElement {
               <div class="subject-progress-bar">
                 <div class="subject-fill" style="width: ${mathStats.progressPercent}%"></div>
               </div>
-              <button class="btn-continue btn-math" data-action="continue-math">
+              <button class="btn-continue btn-math" data-continue="math">
                 Continue Math
               </button>
             </div>
@@ -240,7 +240,7 @@ export function renderProgressPage(options: ProgressPageOptions): HTMLElement {
               <div class="subject-progress-bar">
                 <div class="subject-fill" style="width: ${elaStats.progressPercent}%"></div>
               </div>
-              <button class="btn-continue btn-ela" data-action="continue-ela">
+              <button class="btn-continue btn-ela" data-continue="ela">
                 Continue ELA
               </button>
             </div>
@@ -279,10 +279,12 @@ export function renderProgressPage(options: ProgressPageOptions): HTMLElement {
   // buttons only worked because main.ts re-queried the document 100ms later
   // and bound them from outside. Wiring them here, against this container,
   // removes the need to guess when the nodes are attached.
-  container.querySelector('[data-action="continue-math"]')
-    ?.addEventListener('click', () => options.onNavigate('math'));
-  container.querySelector('[data-action="continue-ela"]')
-    ?.addEventListener('click', () => options.onNavigate('ela'));
+  container.querySelectorAll<HTMLButtonElement>('[data-continue]').forEach(btn => {
+    const subject = btn.dataset.continue;
+    if (subject === 'math' || subject === 'ela') {
+      btn.addEventListener('click', () => options.onNavigate(subject));
+    }
+  });
 
   return container;
 }

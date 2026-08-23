@@ -13,19 +13,30 @@ import { renderSidebar } from './components/sidebar';
 import type { StudentProfile, Lesson, Grade, Language, Subject, Progress } from './types';
 import { renderLessonScreen, type TutorMessage } from './screens/lesson';
 import { getTutorResponse } from './gemini';
-import { startQuiz, renderQuizScreen, renderQuizSummary, selectAnswer, useHint, goToNextQuestion, submitQuiz, getQuizProgress, calculateScore, calculateXP, getCurrentQuestion, getCurrentQuestionIndex } from './screens/quiz';
+import { startQuiz, endQuiz, renderQuizScreen, renderQuizSummary, selectAnswer, useHint, goToNextQuestion, submitQuiz, getQuizProgress, calculateScore, calculateXP, getCurrentQuestion, getCurrentQuestionIndex } from './screens/quiz';
 import { startBossBattle, renderBossScreen, renderBossSummary, selectBossAnswer, useBossHint, goToNextBossQuestion, calculateBossScore, calculateBossXP, isBossDefeated, getCurrentBossEntry } from './screens/boss';
 import type { BossState } from './screens/boss';
+import { startRouter, navigate, redirect, replaceHash, currentRoute, type Route } from './router';
 
 
 // ── App State ─────────────────────────────────────────────────────────────────
 
-type Page = 'dashboard' | 'onboarding' | 'lesson' | 'quiz' | 'boss' | 'progress' | 'settings' | 'math' | 'ela';
+/**
+ * The screen on display. Every value except 'onboarding' is a RoutePage — the
+ * URL is the source of truth for which one is showing, and applyRoute is the
+ * only thing that writes this.
+ */
+type Page = Route['page'] | 'onboarding';
 
 let currentPage: Page = 'onboarding';
 let currentSubject: Subject = 'math';
 let currentLessonId: number | null = null;
-let currentQuiz: ReturnType<typeof getQuizProgress> = null;
+/**
+ * The battle in progress, mirrored from boss.ts so that clearing it here starts
+ * a fresh one. There is no quiz mirror beside it on purpose: the two screens
+ * answer a cold URL differently, and each rule lives where it is enforced —
+ * see applyRoute.
+ */
 let currentBoss: ReturnType<typeof startBossBattle> | null = null;
 /**
  * Whether the current boss battle has already been settled.
@@ -86,8 +97,8 @@ function updateChatUI(): void {
  *
  * Both tables matter: scores live on Progress rows, but the per-question "answered"
  * flags that decide whether a lesson is in progress live on the lesson records.
- * Always resolve this BEFORE calling render() — render() must not await between
- * clearing #app and appending, or two overlapping calls each append a layout.
+ * Awaited from applyRoute, before render() runs — render() is synchronous so
+ * that no navigation can await between clearing #app and appending to it.
  */
 async function refreshStudentData(): Promise<void> {
   if (!profile) return;
@@ -106,27 +117,138 @@ async function refreshStudentData(): Promise<void> {
   await updateProfile(nickname, xp);
 }
 
-async function navigateTo(page: string): Promise<void> {
-  if (page === 'math' || page === 'ela') {
-    currentSubject = page as Subject;
-    if (profile) {
+/**
+ * Resolve one route into app state, then paint it.
+ *
+ * The single entry point for navigation: nothing sets currentPage directly any
+ * more, every screen callback sets the hash instead, and the hash lands here.
+ * That is what keeps the address bar and the screen from disagreeing — including
+ * on Back, Forward and reload, which reach this function by exactly the same
+ * path a click does.
+ *
+ * Order matters. Everything this route reads is awaited here, before render()
+ * runs, because render() is synchronous by design — see its comment.
+ */
+async function applyRoute(route: Route): Promise<void> {
+  // No profile means no app yet. Onboarding is unrouted, so every hash — a deep
+  // link included — resolves to it until a student exists.
+  if (!profile) {
+    currentPage = 'onboarding';
+    render();
+    return;
+  }
+  const grade = profile.grade;
+
+  // #/lesson/:id and #/quiz/:id name a lesson; nothing else does.
+  const routeLessonId = route.page === 'lesson' || route.page === 'quiz'
+    ? route.lessonId ?? null
+    : null;
+
+  // The tutor conversation belongs to one lesson. Changing lessons — or leaving
+  // for anywhere that is not this lesson's quiz — starts a fresh one, which the
+  // lesson screen's Back button used to have to remember to do by hand.
+  if (routeLessonId !== currentLessonId) {
+    tutorMessages   = [];
+    isTutorThinking = false;
+  }
+
+  // A quiz and a battle in progress live in their screen modules, not in the
+  // URL, and leaving either discards it. Without this, Back into #/quiz/:id
+  // would resume answers the student had walked away from, and Back into
+  // #/boss/:subject would remount a settled battle with bossSettled still armed
+  // — a screen whose Next button does nothing.
+  if (route.page !== 'quiz') endQuiz();
+  if (route.page !== 'boss') currentBoss = null;
+
+  if (route.subject) currentSubject = route.subject;
+  currentLessonId = routeLessonId;
+
+  switch (route.page) {
+    case 'lesson':
+    case 'quiz': {
+      await refreshStudentData();
+      const lesson = lessons.find(l => l.id === routeLessonId);
+
+      // A link to a lesson this device does not have — a stale share, a
+      // different grade, a hand-typed id — has nothing to show.
+      if (!lesson) return redirect(subjectRoute(currentSubject));
+
+      // The URL carries no subject, so take it from the lesson. Without this a
+      // deep link's Back button would go wherever the last visit happened to be.
+      currentSubject = lesson.subject;
+
+      // A quiz is resumable only while quiz.ts holds it: the answers so far, the
+      // hints left and the running score are all module state and none of it is
+      // in the URL. Reloading or stepping Back into #/quiz/:id therefore lands
+      // on the lesson rather than silently restarting from question 1 with the
+      // score wiped. The lesson screen starts the quiz before it routes here,
+      // which is what makes this check mean "resumable" and not "first paint".
+      if (route.page === 'quiz' && !getQuizProgress()) {
+        return redirect({ page: 'lesson', lessonId: lesson.id as number });
+      }
+
+      currentPage = route.page;
+      break;
+    }
+
+    case 'math':
+    case 'ela':
       // Full refresh, not just the lessons: the sidebar and the subject header
       // both show a level derived from XP, and arriving here straight off a quiz
       // summary is the most likely moment for that number to have just changed.
-      const grade = profile.grade;
       await refreshStudentData();
       // Resolve exhaustion on arrival so the card never offers a topic that
       // isn't there — the previous visit may have used the last one.
       generateState = (await remainingTopics(currentSubject, grade)) > 0 ? 'idle' : 'exhausted';
-    }
-    currentPage = page as Page;
-  } else if (page === 'dashboard' || page === 'progress' || page === 'settings') {
-    if (page === 'dashboard' || page === 'progress') {
+      currentPage   = route.page;
+      break;
+
+    case 'boss':
+      // A cold #/boss/:subject starts a fresh battle rather than redirecting.
+      // Unlike a quiz it belongs to no lesson and carries nothing to lose — it
+      // is a three-minute challenge over the whole subject, so the URL is worth
+      // sharing. renderBoss does the starting, which is also where bossSettled
+      // is disarmed.
+      await refreshStudentData();   // the question pool is built from `lessons`
+      currentPage = 'boss';
+      break;
+
+    case 'progress':
       await refreshStudentData();
-    }
-    currentPage = page as Page;
+      currentPage = 'progress';
+      break;
+
+    case 'settings':
+      currentPage = 'settings';
+      break;
+
+    default:
+      await refreshStudentData();
+      currentPage = 'dashboard';
   }
+
   render();
+}
+
+/** The route for a subject's lesson list. */
+function subjectRoute(subject: Subject): Route {
+  return { page: subject, subject };
+}
+
+/**
+ * Map a sidebar item to the route it addresses.
+ *
+ * The nav ids are route pages already; 'dashboard' is the one whose URL is not
+ * its own name.
+ */
+function navRoute(page: string): Route {
+  switch (page) {
+    case 'math':
+    case 'ela':      return subjectRoute(page);
+    case 'progress': return { page: 'progress' };
+    case 'settings': return { page: 'settings' };
+    default:         return { page: 'dashboard' };
+  }
 }
 
 
@@ -171,8 +293,14 @@ async function handleGenerateLesson(): Promise<void> {
  * Everything below the sidebar is one function per screen, so this reads as a
  * dispatch table rather than the 300-line if/else chain it used to be. Each
  * screen owns its own callbacks and never reaches outside its own container.
+ *
+ * Synchronous, and that is the whole point. This used to await inside — and an
+ * await between emptying #app and appending to it let a second render slip into
+ * the gap, after which both appended and the app carried two .app-layout roots.
+ * Now every fetch happens in applyRoute before this is called, so the invariant
+ * is enforced by the signature instead of by a comment asking for it.
  */
-async function render(): Promise<void> {
+function render(): void {
   // Onboarding is the one screen with no sidebar — there is no profile yet.
   if (currentPage === 'onboarding') {
     swapRoot(renderOnboarding({
@@ -182,22 +310,15 @@ async function render(): Promise<void> {
     return;
   }
 
-  // Every await happens here, before #app is touched. renderQuiz has to start a
-  // quiz, and awaiting with the root already emptied lets a second render slip in
-  // between the clear and the append — both then append, and the app shows two
-  // layouts. Building first and swapping last means the slower render simply
-  // loses, which is the behaviour that was wanted all along.
-  const content = await renderCurrentPage();
-
   const layout = document.createElement('div');
   layout.className = 'app-layout';
   layout.appendChild(renderSidebar({
     profile,
     currentPage,
     isOnline:   navigator.onLine,
-    onNavigate: (page) => { void navigateTo(page); },
+    onNavigate: (page) => navigate(navRoute(page)),
   }));
-  layout.appendChild(content);
+  layout.appendChild(renderCurrentPage());
 
   swapRoot(layout);
 }
@@ -208,7 +329,7 @@ function swapRoot(view: HTMLElement): void {
   app.appendChild(view);
 }
 
-async function renderCurrentPage(): Promise<HTMLElement> {
+function renderCurrentPage(): HTMLElement {
   switch (currentPage) {
     case 'math':
     case 'ela':      return renderSubject();
@@ -221,7 +342,14 @@ async function renderCurrentPage(): Promise<HTMLElement> {
   }
 }
 
-/** Show a summary card — deliberately without the sidebar around it. */
+/**
+ * Show a summary card — deliberately without the sidebar around it.
+ *
+ * Summaries have no URL of their own: the hash still reads #/quiz/7 or
+ * #/boss/math underneath. They are transient by design, so a reload on one
+ * resolves the route beneath it — back to the lesson, or into a fresh battle —
+ * rather than re-showing a score for an attempt that is already recorded.
+ */
 function showSummary(summary: HTMLElement): void {
   swapRoot(summary);
 }
@@ -237,9 +365,8 @@ function renderHome(): HTMLElement {
     isOnline:         navigator.onLine,
     pendingSyncCount,
     onSelectLesson: (lessonId) => {
-      currentLessonId = lessonId;
-      currentPage = 'quiz';
-      render();
+      const lesson = lessons.find(l => l.id === lessonId);
+      if (lesson) void beginQuiz(lesson);
     },
   });
 }
@@ -251,24 +378,15 @@ function renderSubject(): HTMLElement {
     profile,
     isOnline: navigator.onLine,
     generateState,
-    onSelectLesson: (lessonId) => {
-      currentLessonId = lessonId;
-      // 'lesson', not 'quiz'. Two handlers used to fight over this: this one set
-      // 'quiz', and a second bound 100ms later by setupSubjectPageHandlers set
-      // 'lesson' and won. One click rendered the app root twice — the quiz screen
-      // appeared and was immediately replaced. 'lesson' is the screen that was
-      // actually reached, so it is the behaviour being preserved.
-      currentPage = 'lesson';
-      render();
-    },
-    onStartBoss: (subject) => {
-      currentSubject = subject;
-      currentPage = 'boss';
-      currentBoss = null;
-      render();
-    },
+    // 'lesson', not 'quiz'. Two handlers used to fight over this: this one set
+    // 'quiz', and a second bound 100ms later by setupSubjectPageHandlers set
+    // 'lesson' and won. One click rendered the app root twice — the quiz screen
+    // appeared and was immediately replaced. 'lesson' is the screen that was
+    // actually reached, so it is the behaviour being preserved.
+    onSelectLesson:   (lessonId) => navigate({ page: 'lesson', lessonId }),
+    onStartBoss:      (subject)  => navigate({ page: 'boss', subject }),
     onGenerateLesson: () => void handleGenerateLesson(),
-    onGoBack:         () => navigateTo('dashboard'),
+    onGoBack:         () => navigate({ page: 'dashboard' }),
   });
 }
 
@@ -278,7 +396,7 @@ function renderProgress(): HTMLElement {
     lessons,
     recentProgress,
     isOnline:   navigator.onLine,
-    onNavigate: (subject) => { void navigateTo(subject); },
+    onNavigate: (subject) => navigate(subjectRoute(subject)),
   });
 }
 
@@ -287,13 +405,9 @@ function renderProgress(): HTMLElement {
 
 function renderLesson(): HTMLElement {
   const lesson = lessons.find(l => l.id === currentLessonId);
-  if (!lesson) {
-    // The id no longer resolves to anything — fall back to the subject the
-    // student came from rather than rendering an empty frame.
-    currentPage = currentSubject as Page;
-    currentLessonId = null;
-    return renderSubject();
-  }
+  // applyRoute resolves the id and redirects when it names nothing, so this only
+  // catches a lesson that vanished between routing and painting.
+  if (!lesson) return placeholderFor(subjectRoute(currentSubject));
 
   if (tutorMessages.length === 0) {
     tutorMessages = [{
@@ -309,19 +423,36 @@ function renderLesson(): HTMLElement {
     isOnline: navigator.onLine,
     messages: tutorMessages,
     isTutorThinking,
-    onGoBack: () => {
-      tutorMessages = [];
-      isTutorThinking = false;
-      currentPage = currentSubject as Page;
-      currentLessonId = null;
-      render();
-    },
-    onTakeQuiz: () => {
-      currentPage = 'quiz';
-      render();
-    },
+    // Clearing the conversation is applyRoute's job now — it happens on every
+    // route that leaves this lesson, not only on the one button that remembered.
+    onGoBack:      () => navigate(subjectRoute(currentSubject)),
+    onTakeQuiz:    () => void beginQuiz(lesson),
     onSendMessage: (prompt) => askTutor(lesson, prompt),
   });
+}
+
+/**
+ * Start a quiz, then route to it.
+ *
+ * The attempt has to exist before the hash changes: #/quiz/:id mounts only while
+ * quiz.ts is holding one, so starting it here rather than lazily inside the
+ * render path is what lets that check distinguish "resume this" from "this URL
+ * was pasted cold".
+ */
+async function beginQuiz(lesson: Lesson): Promise<void> {
+  await startQuiz(lesson, { hintsRemaining: 3 });
+  navigate({ page: 'quiz', lessonId: lesson.id as number });
+}
+
+/**
+ * Stand in for a screen that cannot be painted, and route somewhere that can.
+ *
+ * The redirect renders over this on the next tick; returning an empty node keeps
+ * render() synchronous in the meantime.
+ */
+function placeholderFor(route: Route): HTMLElement {
+  redirect(route);
+  return document.createElement('div');
 }
 
 /**
@@ -354,22 +485,20 @@ async function askTutor(lesson: Lesson, prompt: string): Promise<void> {
 
 // ── Quiz ──────────────────────────────────────────────────────────────────────
 
-async function renderQuiz(): Promise<HTMLElement> {
-  const lesson = lessons.find(l => l.id === currentLessonId);
+function renderQuiz(): HTMLElement {
+  const lesson  = lessons.find(l => l.id === currentLessonId);
   const student = profile;
-  if (!lesson || !student) {
-    currentPage = currentSubject as Page;
-    currentLessonId = null;
-    return renderSubject();
-  }
-
-  if (!currentQuiz) {
-    currentQuiz = await startQuiz(lesson, { hintsRemaining: 3 });
+  // applyRoute guarantees all three — it redirects to the lesson when there is
+  // no attempt in memory, and to the subject when the id names nothing.
+  if (!lesson || !student || !getQuizProgress()) {
+    return placeholderFor(subjectRoute(currentSubject));
   }
 
   const advance = async (): Promise<void> => {
+    // The question index is not in the URL, so moving through a quiz is a
+    // repaint, not a navigation. Putting it in the hash would make Back mean
+    // "un-answer question 3", which is not a promise this app can keep.
     if (goToNextQuestion()) {
-      currentQuiz = getQuizProgress();
       render();
       return;
     }
@@ -381,14 +510,10 @@ async function renderQuiz(): Promise<HTMLElement> {
     const xpEarned = calculateXP(score);
     await saveProgressRecord(lesson, score, xpEarned, state.hintsUsed);
     submitQuiz(student.nickname, lesson.title, currentSubject);
-    currentQuiz = null;
 
     showSummary(renderQuizSummary(
       score, xpEarned, state.hintsUsed, lesson.questions.length,
-      () => {
-        currentLessonId = null;
-        void navigateTo(currentSubject);
-      },
+      () => navigate(subjectRoute(currentSubject)),
     ));
   };
 
@@ -400,11 +525,7 @@ async function renderQuiz(): Promise<HTMLElement> {
     onUseHint: () => { useHint(); },
     onNext:    () => { void advance(); },
     onFinish:  () => { void advance(); },
-    onGoBack:  () => {
-      currentPage = 'lesson';
-      currentQuiz = null;
-      render();
-    },
+    onGoBack:  () => navigate({ page: 'lesson', lessonId: lesson.id as number }),
   });
 }
 
@@ -428,6 +549,8 @@ function renderBoss(): HTMLElement {
   const advance = async (): Promise<void> => {
     if (bossSettled) return;
     if (isBossDefeated())       return settleBossBattle(state, 'completed');
+    // A repaint, not a navigation: the question index is not in the URL, and a
+    // battle is one continuous attempt with a clock running on it.
     if (goToNextBossQuestion()) { render(); return; }
     return settleBossBattle(state, 'completed');   // pool exhausted
   };
@@ -442,10 +565,7 @@ function renderBoss(): HTMLElement {
     onNext:    () => { void advance(); },
     onFinish:  () => { void advance(); },
     onTimeUp:  () => { void settleBossBattle(state, 'timeout'); },
-    onGoBack:  () => {
-      currentBoss = null;
-      void navigateTo('dashboard');
-    },
+    onGoBack:  () => navigate({ page: 'dashboard' }),
   });
 }
 
@@ -482,9 +602,12 @@ async function settleBossBattle(
     });
   }
 
-  showSummary(renderBossSummary(score, xp, state.hintsUsed, answered, () => {
-    currentBoss = null;
-    void navigateTo('dashboard');
+  // The pool size, not `answered`. The summary turns the score back into a count,
+  // and the score is correct-answers over the pool — a battle won after three
+  // wrong guesses has more attempts than questions, and dividing by those would
+  // report a fraction of a question.
+  showSummary(renderBossSummary(score, xp, state.hintsUsed, state.questions.length, () => {
+    navigate({ page: 'dashboard' });
   }));
 }
 
@@ -586,9 +709,9 @@ async function handleOnboardingStart(data: OnboardingData): Promise<void> {
 
   const id = await createProfile(newProfile);
   profile = { ...newProfile, id };
-  await refreshStudentData();
-  currentPage = 'dashboard';
-  render();
+  // The route resolver loads the dashboard's data; there is nothing to do here
+  // but say where the new student lands.
+  navigate({ page: 'dashboard' });
 }
 
 /**
@@ -662,18 +785,18 @@ function mountSyncBadge(): void {
 }
 
 
-// ── Event Delegation ──────────────────────────────────────────────────────────
-
-document.addEventListener('click', (e) => {
-  const target = e.target as HTMLElement;
-  const button = target.closest('[data-page]') || target.closest('[data-action]') || target.closest('[data-route]');
-  if (!button) return;
-  const page = (button as HTMLElement).dataset.page || (button as HTMLElement).dataset.action || (button as HTMLElement).dataset.route;
-  if (page) {
-    e.preventDefault();
-    void navigateTo(page);
-  }
-});
+// A document-wide click delegator used to live here. It caught every
+// [data-page], [data-action] and [data-route] and fed the attribute's value to
+// navigateTo() as if it were a page name. Most of those values were not page
+// names — 'start-lesson-7', 'boss-math', 'continue-math', 'back' — so it matched
+// no branch, changed nothing, and then re-rendered anyway. Every Start Lesson
+// click rendered the app root twice: once from the screen's own handler and once
+// from here. It survived only because render() builds before it swaps.
+//
+// Three screens carried defensive comments explaining which attribute names they
+// had to avoid to stay out of its way. Those are gone too, along with the naming
+// they forced. Navigation is the router's job now, and the screens name their
+// buttons after what the buttons do.
 
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
@@ -706,16 +829,32 @@ async function init(): Promise<void> {
   // A returning student skips onboarding. Without this every reload created a
   // duplicate profile row and reset the streak.
   profile = (await getCurrentProfile()) ?? null;
-  if (profile) {
-    await tickStreak();
-    await refreshStudentData();
-    currentPage = 'dashboard';
-  }
 
+  startRouter((route) => { void applyRoute(route); });
   window.addEventListener('online',  () => render());
   window.addEventListener('offline', () => render());
+
+  if (!profile) {
+    // Onboarding is unrouted, so the hash is left exactly as it was found. If it
+    // is a deep link, it stays in the bar but resolves to nothing until there is
+    // a student — and the first navigation after sign-up overwrites it.
+    currentPage = 'onboarding';
+    render();
+    console.log('[MentorAI] Boot complete');
+    return;
+  }
+
+  await tickStreak();
+
+  // Resolve whatever is in the address bar, not a hardcoded dashboard. Normalise
+  // it first so a stale or hand-typed hash shows the address of the screen it
+  // actually landed on — replaceState rather than a navigation, because there is
+  // no history behind the first entry to go back to.
+  const route = currentRoute();
+  replaceHash(route);
+  await applyRoute(route);
+
   console.log('[MentorAI] Boot complete');
-  render();
 }
 
 init().catch(console.error);
