@@ -18,7 +18,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 20 is the floor the README claims support for; 24 is current LTS.
+        # 20 is the floor the README claims support for — Vite 8 needs 20.19,
+        # which is what setup-node resolves plain "20" to. 24 is current LTS.
         node: [20, 24]
 
     steps:

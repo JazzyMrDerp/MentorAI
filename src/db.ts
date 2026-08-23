@@ -73,18 +73,6 @@ export async function seedLessons(): Promise<void> {
 }
 
 /**
- * Fetch all lessons matching a specific grade, subject, and language.
- * Used by Person 2's lesson screen to load available content offline.
- */
-export async function getLessons(
-  grade: Grade,
-  subject: Subject,
-  language: Language
-): Promise<Lesson[]> {
-  return db.lessons.where({ grade, subject, language }).toArray();
-}
-
-/**
  * Fetch every lesson for a grade, across all subjects.
  * The dashboard counts math and ELA side by side, so it needs both at once.
  * Screens that show a single subject filter this list themselves.
@@ -119,14 +107,6 @@ export async function replaceQuestionInLesson(
 
   lesson.questions[questionIndex] = newQuestion;
   await db.lessons.update(lessonId, { questions: lesson.questions });
-}
-
-/**
- * Save multiple lessons at once — used on first launch to bulk-load
- * all pre-written lesson JSON files into the database in one operation.
- */
-export async function bulkSaveLessons(lessons: Omit<Lesson, 'id'>[]): Promise<void> {
-  await db.lessons.bulkAdd(lessons as Lesson[]);
 }
 
 /**
@@ -205,9 +185,11 @@ export async function markQuestionAnswered(
 }
 
 /**
- * Save a completed quiz attempt.
- * Called by Person 3's quiz engine immediately after the student finishes.
- * Works 100% offline — data stays local until sync runs.
+ * Save a completed attempt — a quiz or a boss battle.
+ *
+ * These rows are the durable record of everything a student has earned:
+ * getXPTotals sums them back into the profile, so nothing else needs to keep a
+ * running total. Works fully offline; the data never leaves the device.
  */
 export async function saveProgress(progress: Omit<Progress, 'id'>): Promise<number> {
   const id = await db.progress.add(progress as Progress);
@@ -215,25 +197,11 @@ export async function saveProgress(progress: Omit<Progress, 'id'>): Promise<numb
 }
 
 /**
- * Get all quiz attempts for a student, newest first.
- * Used by Person 3's teacher dashboard to show recent activity.
+ * Every attempt by a student, newest first.
+ * Drives the dashboard's recent activity and the progress page's history.
  */
 export async function getProgressForStudent(nickname: string): Promise<Progress[]> {
   return db.progress.where('nickname').equals(nickname).reverse().toArray();
-}
-
-/**
- * Get quiz attempts for a student filtered by subject (math or ela).
- * Used to show per-subject performance breakdowns on the dashboard.
- */
-export async function getProgressBySubject(
-  nickname: string,
-  subject: Subject
-): Promise<Progress[]> {
-  return db.progress
-    .where('nickname').equals(nickname)
-    .filter(p => p.subject === subject)
-    .toArray();
 }
 
 /**
@@ -297,12 +265,14 @@ export async function createProfile(
 
 /**
  * Update specific fields on a student's profile.
- * Person 3 calls this after every quiz to update XP, level, and streak.
- * Pass only the fields you want to change — other fields stay untouched.
+ * Pass only the fields you want to change — the rest stay untouched.
  *
- * Example: updateProfile('StarCoder99', { totalXP: 450, currentLevel: 3 })
+ * currentLevel is never passed in: it is always recalculated here from the XP,
+ * so the stored level cannot drift from the stored total. Note that an update
+ * carrying no totalXP derives the level from what is already on the row.
+ *
+ * Example: updateProfile('StarCoder99', { totalXP: 450 })
  */
-// FIXED — level is calculated and saved
 export async function updateProfile(
   nickname: string,
   updates: Partial<StudentProfile>
@@ -382,14 +352,6 @@ export async function incrementSyncRetry(id: number): Promise<void> {
   const item = await db.syncQueue.get(id);
   if (!item) return;
   await db.syncQueue.update(item.id as number, { retries: (item.retries ?? 0) + 1 });
-}
-
-/**
- * Wipe the entire sync queue.
- * Only used after a successful full sync where everything was processed.
- */
-export async function clearAllSyncItems(): Promise<void> {
-  await db.syncQueue.clear();
 }
 
 export default db;

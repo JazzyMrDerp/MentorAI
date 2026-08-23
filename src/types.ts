@@ -48,9 +48,8 @@ export interface Lesson {
 // ── Progress ──────────────────────────────────────────────────────────────────
 
 /**
- * One quiz attempt by a student.
- * Saved to IndexedDB immediately after quiz completion — works fully offline.
- * Synced to the teacher dashboard when the device reconnects.
+ * One completed attempt by a student — a lesson's quiz, or a boss battle.
+ * Written to IndexedDB the moment it finishes and never leaves the device.
  */
 export interface Progress {
   id?:          number;    // Auto-assigned by Dexie
@@ -77,7 +76,8 @@ export interface Progress {
 /**
  * One profile per student, stored locally in IndexedDB.
  * No accounts, no login — identified only by nickname.
- * Updated by Person 3 after every quiz via updateProfile() in db.ts.
+ * The XP columns are a cache of the progress table, refreshed by getXPTotals()
+ * rather than incremented — see db.ts.
  */
 export interface StudentProfile {
   id?:           number;   // Auto-assigned by Dexie
@@ -85,7 +85,7 @@ export interface StudentProfile {
   grade:        Grade;
   language:     Language; // Controls lesson language and UI language
   totalXP:      number;   // Cumulative XP across all subjects
-  currentLevel: number;   // Calculated from totalXP — Person 3 owns this logic
+  currentLevel: number;   // Derived from totalXP by calculateLevel() in utils/level.ts
   streak:       number;   // Consecutive days the student has been active
   lastActive:   string;   // ISO date string — used to calculate/reset streak
   mathXP:       number;   // XP earned specifically in math lessons
@@ -126,17 +126,4 @@ export interface GeminiLessonResponse {
   title:     string;
   content:   string;
   questions: Question[];
-}
-
-// ── App State ─────────────────────────────────────────────────────────────────
-
-/**
- * Global UI state passed between screens by router.ts (Person 2).
- * Holds the active student profile, the current lesson being viewed,
- * and the live online/offline status.
- */
-export interface AppState {
-  profile:       StudentProfile | null; // null until student enters their nickname
-  currentLesson: Lesson | null;         // null when on the dashboard screen
-  isOnline:      boolean;               // mirrors navigator.onLine, updated by offline.ts
 }

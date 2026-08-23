@@ -161,19 +161,6 @@ export function isBossDefeated(): boolean {
   return currentBoss !== null && currentBoss.currentHealth <= 0;
 }
 
-export function getBossProgress(): BossState | null {
-  return currentBoss;
-}
-
-export function getBossProgressStats(): { current: number; total: number; answered: number } {
-  if (!currentBoss) return { current: 0, total: 0, answered: 0 };
-  return {
-    current: currentBoss.currentQuestionIndex + 1,
-    total: currentBoss.questions.length,
-    answered: currentBoss.answers.filter(a => a !== null).length,
-  };
-}
-
 export function calculateBossScore(): number {
   if (!currentBoss) return 0;
   return Math.round((currentBoss.correctAnswers / currentBoss.questions.length) * 100);

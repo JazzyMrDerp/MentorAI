@@ -11,10 +11,11 @@ import { renderSubjectPage, renderSettingsPlaceholder, type GenerateState } from
 import { renderProgressPage } from './screens/progress';
 import { renderSidebar } from './components/sidebar';
 import type { StudentProfile, Lesson, Grade, Language, Subject, Progress } from './types';
-import { renderLessonScreen, type TutorMessage } from './screens/lesson';  // ← NEW: added TutorMessage
-import { getTutorResponse } from './gemini';  // ← NEW
+import { renderLessonScreen, type TutorMessage } from './screens/lesson';
+import { getTutorResponse } from './gemini';
 import { startQuiz, renderQuizScreen, renderQuizSummary, selectAnswer, useHint, goToNextQuestion, submitQuiz, getQuizProgress, calculateScore, calculateXP, getCurrentQuestion, getCurrentQuestionIndex } from './screens/quiz';
 import { startBossBattle, renderBossScreen, renderBossSummary, selectBossAnswer, useBossHint, goToNextBossQuestion, calculateBossScore, calculateBossXP, isBossDefeated, getCurrentBossEntry } from './screens/boss';
+import type { BossState } from './screens/boss';
 
 
 // ── App State ─────────────────────────────────────────────────────────────────
@@ -45,7 +46,7 @@ let recentProgress: Progress[] = [];
 let pendingSyncCount = 0;
 let generateState: GenerateState = 'idle';
 
-// ── Chat State ────────────────────────────────────────────────────────────────  ← NEW
+// ── Chat State ────────────────────────────────────────────────────────────────
 let tutorMessages: TutorMessage[] = [];
 let isTutorThinking = false;
 
@@ -53,7 +54,14 @@ function uniqueMessageId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-function updateChatUI(): void {  // ← NEW: updates only the chat div, never re-renders whole page
+/**
+ * Repaint the tutor conversation in place.
+ *
+ * Scoped to the messages list on purpose: the lesson screen is rendered once and
+ * a reply arriving must not rebuild it, which would drop the student's scroll
+ * position and any half-typed question.
+ */
+function updateChatUI(): void {
   const messagesEl = document.getElementById('tutor-messages');
   if (!messagesEl) return;
 
@@ -157,301 +165,327 @@ async function handleGenerateLesson(): Promise<void> {
 
 // ── Render ────────────────────────────────────────────────────────────────────
 
+/**
+ * Rebuild the app root for the current page.
+ *
+ * Everything below the sidebar is one function per screen, so this reads as a
+ * dispatch table rather than the 300-line if/else chain it used to be. Each
+ * screen owns its own callbacks and never reaches outside its own container.
+ */
 async function render(): Promise<void> {
-  app.innerHTML = '';
-  const isOnline = navigator.onLine;
-
+  // Onboarding is the one screen with no sidebar — there is no profile yet.
   if (currentPage === 'onboarding') {
-    app.appendChild(renderOnboarding({ isOnline, onStart: handleOnboardingStart }));
+    swapRoot(renderOnboarding({
+      isOnline: navigator.onLine,
+      onStart:  handleOnboardingStart,
+    }));
     return;
   }
 
+  // Every await happens here, before #app is touched. renderQuiz has to start a
+  // quiz, and awaiting with the root already emptied lets a second render slip in
+  // between the clear and the append — both then append, and the app shows two
+  // layouts. Building first and swapping last means the slower render simply
+  // loses, which is the behaviour that was wanted all along.
+  const content = await renderCurrentPage();
+
   const layout = document.createElement('div');
   layout.className = 'app-layout';
-
-  const sidebar = renderSidebar({
+  layout.appendChild(renderSidebar({
     profile,
     currentPage,
-    isOnline,
-    onNavigate: (page) => { void navigateTo(page); }
+    isOnline:   navigator.onLine,
+    onNavigate: (page) => { void navigateTo(page); },
+  }));
+  layout.appendChild(content);
+
+  swapRoot(layout);
+}
+
+/** Replace the app root's contents in one synchronous step. */
+function swapRoot(view: HTMLElement): void {
+  app.innerHTML = '';
+  app.appendChild(view);
+}
+
+async function renderCurrentPage(): Promise<HTMLElement> {
+  switch (currentPage) {
+    case 'math':
+    case 'ela':      return renderSubject();
+    case 'lesson':   return renderLesson();
+    case 'quiz':     return renderQuiz();
+    case 'boss':     return renderBoss();
+    case 'progress': return renderProgress();
+    case 'settings': return renderSettingsPlaceholder();
+    default:         return renderHome();
+  }
+}
+
+/** Show a summary card — deliberately without the sidebar around it. */
+function showSummary(summary: HTMLElement): void {
+  swapRoot(summary);
+}
+
+
+// ── Screens ───────────────────────────────────────────────────────────────────
+
+function renderHome(): HTMLElement {
+  return renderDashboard({
+    profile,
+    lessons,
+    progress:         recentProgress,
+    isOnline:         navigator.onLine,
+    pendingSyncCount,
+    onSelectLesson: (lessonId) => {
+      currentLessonId = lessonId;
+      currentPage = 'quiz';
+      render();
+    },
   });
+}
 
-  let mainContent: HTMLElement;
+function renderSubject(): HTMLElement {
+  return renderSubjectPage({
+    subject: currentSubject,
+    lessons: lessons.filter(l => l.subject === currentSubject),
+    profile,
+    isOnline: navigator.onLine,
+    generateState,
+    onSelectLesson: (lessonId) => {
+      currentLessonId = lessonId;
+      // 'lesson', not 'quiz'. Two handlers used to fight over this: this one set
+      // 'quiz', and a second bound 100ms later by setupSubjectPageHandlers set
+      // 'lesson' and won. One click rendered the app root twice — the quiz screen
+      // appeared and was immediately replaced. 'lesson' is the screen that was
+      // actually reached, so it is the behaviour being preserved.
+      currentPage = 'lesson';
+      render();
+    },
+    onStartBoss: (subject) => {
+      currentSubject = subject;
+      currentPage = 'boss';
+      currentBoss = null;
+      render();
+    },
+    onGenerateLesson: () => void handleGenerateLesson(),
+    onGoBack:         () => navigateTo('dashboard'),
+  });
+}
 
-  if (currentPage === 'math' || currentPage === 'ela') {
-    mainContent = renderSubjectPage({
-      subject: currentSubject,
-      lessons: lessons.filter(l => l.subject === currentSubject),
-      profile,
-      isOnline,
-      onSelectLesson: (lessonId) => {
-        currentLessonId = lessonId;
-        // 'lesson', not 'quiz'. Two handlers used to fight over this: this one
-        // set 'quiz', and a second bound 100ms later by setupSubjectPageHandlers
-        // set 'lesson' and won. One click rendered the app root twice — the quiz
-        // screen appeared and was immediately replaced. 'lesson' is the screen
-        // that was actually reached, so it is the behaviour being preserved.
-        currentPage = 'lesson';
-        render();
-      },
-      onStartBoss: (subject) => {
-        currentSubject = subject;
-        currentPage = 'boss';
-        currentBoss = null;
-        render();
-      },
-      generateState,
-      onGenerateLesson: () => void handleGenerateLesson(),
-      onGoBack: () => navigateTo('dashboard'),
-    });
-  } else if (currentPage === 'lesson' && currentLessonId) {
-    const selectedLesson = lessons.find(l => l.id === currentLessonId);
-    if (selectedLesson) {
+function renderProgress(): HTMLElement {
+  return renderProgressPage({
+    profile,
+    lessons,
+    recentProgress,
+    isOnline:   navigator.onLine,
+    onNavigate: (subject) => { void navigateTo(subject); },
+  });
+}
 
-      // ← NEW: seed welcome message when entering lesson fresh
-      if (tutorMessages.length === 0) {
-        tutorMessages = [{
-          id: uniqueMessageId(),
-          role: 'mentor',
-          text: `Hi! I'm your MentorAI tutor. Today we're working on "${selectedLesson.title}". Ask me anything! 🧠`,
-        }];
-      }
 
-      mainContent = renderLessonScreen({
-        lesson: selectedLesson,
-        profile,
-        isOnline,
-        messages: tutorMessages,          // ← NEW
-        isTutorThinking: isTutorThinking, // ← NEW
-        onGoBack: () => {
-          tutorMessages = [];             // ← NEW: reset chat on back
-          isTutorThinking = false;
-          currentPage = currentSubject as Page;
-          currentLessonId = null;
-          render();
-        },
-        onTakeQuiz: () => {
-          currentPage = 'quiz';
-          render();
-        },
-        onSendMessage: async (prompt: string) => {  // ← NEW: full Gemini implementation
-          tutorMessages = [
-            ...tutorMessages,
-            { id: uniqueMessageId(), role: 'student', text: prompt },
-          ];
-          isTutorThinking = true;
-          updateChatUI(); // ← only update chat, not whole page
+// ── Lesson ────────────────────────────────────────────────────────────────────
 
-          try {
-            const reply = await getTutorResponse(
-              prompt,
-              selectedLesson.content,
-              selectedLesson.grade,
-            );
-            tutorMessages = [
-              ...tutorMessages,
-              { id: uniqueMessageId(), role: 'mentor', text: reply },
-            ];
-          } catch (err) {
-            console.error('Gemini error:', err);
-            tutorMessages = [
-              ...tutorMessages,
-              { id: uniqueMessageId(), role: 'mentor', text: "Sorry, I couldn't connect. Try again in a moment! 🔌" },
-            ];
-          } finally {
-            isTutorThinking = false;
-            updateChatUI();
-          }
-        },
-      });
-    } else {
+function renderLesson(): HTMLElement {
+  const lesson = lessons.find(l => l.id === currentLessonId);
+  if (!lesson) {
+    // The id no longer resolves to anything — fall back to the subject the
+    // student came from rather than rendering an empty frame.
+    currentPage = currentSubject as Page;
+    currentLessonId = null;
+    return renderSubject();
+  }
+
+  if (tutorMessages.length === 0) {
+    tutorMessages = [{
+      id:   uniqueMessageId(),
+      role: 'mentor',
+      text: `Hi! I'm your MentorAI tutor. Today we're working on "${lesson.title}". Ask me anything! 🧠`,
+    }];
+  }
+
+  return renderLessonScreen({
+    lesson,
+    profile,
+    isOnline: navigator.onLine,
+    messages: tutorMessages,
+    isTutorThinking,
+    onGoBack: () => {
+      tutorMessages = [];
+      isTutorThinking = false;
       currentPage = currentSubject as Page;
       currentLessonId = null;
       render();
+    },
+    onTakeQuiz: () => {
+      currentPage = 'quiz';
+      render();
+    },
+    onSendMessage: (prompt) => askTutor(lesson, prompt),
+  });
+}
+
+/**
+ * Send one tutor question and fold the reply into the conversation.
+ *
+ * Repaints only the chat pane. A full render() would tear down the lesson screen
+ * and lose the student's place in it mid-conversation.
+ */
+async function askTutor(lesson: Lesson, prompt: string): Promise<void> {
+  tutorMessages = [...tutorMessages, { id: uniqueMessageId(), role: 'student', text: prompt }];
+  isTutorThinking = true;
+  updateChatUI();
+
+  try {
+    const reply = await getTutorResponse(prompt, lesson.content, lesson.grade);
+    tutorMessages = [...tutorMessages, { id: uniqueMessageId(), role: 'mentor', text: reply }];
+  } catch (err) {
+    console.error('[Tutor] Gemini call failed:', err);
+    tutorMessages = [...tutorMessages, {
+      id:   uniqueMessageId(),
+      role: 'mentor',
+      text: "Sorry, I couldn't connect. Try again in a moment! 🔌",
+    }];
+  } finally {
+    isTutorThinking = false;
+    updateChatUI();
+  }
+}
+
+
+// ── Quiz ──────────────────────────────────────────────────────────────────────
+
+async function renderQuiz(): Promise<HTMLElement> {
+  const lesson = lessons.find(l => l.id === currentLessonId);
+  const student = profile;
+  if (!lesson || !student) {
+    currentPage = currentSubject as Page;
+    currentLessonId = null;
+    return renderSubject();
+  }
+
+  if (!currentQuiz) {
+    currentQuiz = await startQuiz(lesson, { hintsRemaining: 3 });
+  }
+
+  const advance = async (): Promise<void> => {
+    if (goToNextQuestion()) {
+      currentQuiz = getQuizProgress();
+      render();
       return;
     }
-  } else if (currentPage === 'progress') {
-    mainContent = renderProgressPage({
-      profile,
-      lessons,
-      recentProgress,
-      isOnline,
-      onNavigate: (subject) => { void navigateTo(subject); }
-    });
-  } else if (currentPage === 'settings') {
-    mainContent = renderSettingsPlaceholder();
-  } else if (currentPage === 'boss' && profile) {
-    const subjectLessons = lessons.filter(l => l.subject === currentSubject);
-    if (subjectLessons.length > 0) {
-      const bossState = currentBoss || startBossBattle(subjectLessons, currentSubject);
-      if (!currentBoss) {
-        currentBoss = bossState;
-        bossSettled = false;
-      }
-      const currentProfile = profile;
 
-      const handleBossNext = async () => {
-        if (bossSettled) return;
-        const defeated = isBossDefeated();
-        if (defeated) {
-          const bossScore = calculateBossScore();
-          const answered = bossState.answers.length;
-          const bossXP = calculateBossXP(bossScore, answered);
-          // Set before awaiting: a second caller must not slip through while the
-          // first is still inside saveProgress.
-          bossSettled = true;
-          if (currentProfile) {
-            await saveProgress({
-              nickname: currentProfile.nickname,
-              kind: 'boss',
-              lessonTitle: `${currentSubject} Boss Battle`,
-              subject: currentSubject as Subject,
-              score: bossScore,
-              xpEarned: bossXP,
-              attempts: answered,
-              hintsUsed: bossState.hintsUsed,
-              completedAt: new Date().toISOString(),
-            });
-          }
-          app.innerHTML = '';
-          app.appendChild(
-            renderBossSummary(bossScore, bossXP, bossState.hintsUsed, answered, () => {
-              currentBoss = null;
-              void navigateTo('dashboard');
-            })
-          );
-          return;
-        }
-        const moved = goToNextBossQuestion();
-        if (moved) {
-          render();
-        } else {
-          const bossScore = calculateBossScore();
-          const answered = bossState.answers.length;
-          const bossXP = calculateBossXP(bossScore, answered);
-          // Set before awaiting: a second caller must not slip through while the
-          // first is still inside saveProgress.
-          bossSettled = true;
-          if (currentProfile) {
-            await saveProgress({
-              nickname: currentProfile.nickname,
-              kind: 'boss',
-              lessonTitle: `${currentSubject} Boss Battle`,
-              subject: currentSubject as Subject,
-              score: bossScore,
-              xpEarned: bossXP,
-              attempts: answered,
-              hintsUsed: bossState.hintsUsed,
-              completedAt: new Date().toISOString(),
-            });
-          }
-          app.innerHTML = '';
-          app.appendChild(
-            renderBossSummary(bossScore, bossXP, bossState.hintsUsed, answered, () => {
-              currentBoss = null;
-              void navigateTo('dashboard');
-            })
-          );
-        }
-      };
+    const state = getQuizProgress();
+    if (!state) return;
 
-      mainContent = renderBossScreen({
-        subject: currentSubject,
-        onSelectAnswer: (index) => {
-          selectBossAnswer(index);
-          void recordBossAnswer(index);
-        },
-        onUseHint: () => { useBossHint(); },
-        onNext: handleBossNext,
-        onFinish: () => { handleBossNext(); },
-        onTimeUp: () => {
-          if (bossSettled) return;
-          bossSettled = true;
-          app.innerHTML = '';
-          app.appendChild(
-            renderBossSummary(0, 0, bossState.hintsUsed, bossState.answers.length, () => {
-              currentBoss = null;
-              void navigateTo('dashboard');
-            })
-          );
-        },
-        onGoBack: () => {
-          currentBoss = null;
-          void navigateTo('dashboard');
-        },
-      });
-    } else {
-      mainContent = document.createElement('div');
-      mainContent.textContent = 'No lessons available for boss battle';
-    }
-  } else if (currentPage === 'quiz' && currentLessonId && profile) {
-    const selectedLesson = lessons.find(l => l.id === currentLessonId);
-    if (selectedLesson && profile) {
-      if (!currentQuiz) {
-        currentQuiz = await startQuiz(selectedLesson, { hintsRemaining: 3 });
-      }
+    const score    = calculateScore();
+    const xpEarned = calculateXP(score);
+    await saveProgressRecord(lesson, score, xpEarned, state.hintsUsed);
+    submitQuiz(student.nickname, lesson.title, currentSubject);
+    currentQuiz = null;
 
-      const handleNext = async () => {
-        const moved = goToNextQuestion();
-        if (moved) {
-          currentQuiz = getQuizProgress();
-          render();
-        } else {
-          const quizState = getQuizProgress();
-          if (quizState) {
-            const score = calculateScore();
-            const xpEarned = calculateXP(score);
-            await saveProgressRecord(selectedLesson, score, xpEarned, quizState.hintsUsed);
-            submitQuiz(profile!.nickname, selectedLesson.title, currentSubject);
-            currentQuiz = null;
-            app.innerHTML = '';
-            app.appendChild(
-              renderQuizSummary(score, xpEarned, quizState.hintsUsed, selectedLesson.questions.length, () => {
-                currentLessonId = null;
-                void navigateTo(currentSubject);
-              })
-            );
-            return;
-          }
-        }
-      };
-
-      mainContent = renderQuizScreen({
-        onSelectAnswer: (index) => {
-          selectAnswer(index);
-          void recordAnswer(selectedLesson, index);
-        },
-        onUseHint: () => { useHint(); },
-        onNext: handleNext,
-        onFinish: () => { handleNext(); },
-        onGoBack: () => {
-          currentPage = 'lesson';
-          currentQuiz = null;
-          render();
-        },
-      });
-    } else {
-      mainContent = document.createElement('div');
-      mainContent.textContent = 'No lesson selected';
-    }
-  } else {
-    mainContent = renderDashboard({
-      profile,
-      lessons,
-      progress: recentProgress,
-      isOnline,
-      pendingSyncCount,
-      onSelectLesson: (lessonId) => {
-        currentLessonId = lessonId;
-        currentPage = 'quiz';
-        render();
+    showSummary(renderQuizSummary(
+      score, xpEarned, state.hintsUsed, lesson.questions.length,
+      () => {
+        currentLessonId = null;
+        void navigateTo(currentSubject);
       },
+    ));
+  };
+
+  return renderQuizScreen({
+    onSelectAnswer: (index) => {
+      selectAnswer(index);
+      void recordAnswer(lesson, index);
+    },
+    onUseHint: () => { useHint(); },
+    onNext:    () => { void advance(); },
+    onFinish:  () => { void advance(); },
+    onGoBack:  () => {
+      currentPage = 'lesson';
+      currentQuiz = null;
+      render();
+    },
+  });
+}
+
+
+// ── Boss battle ───────────────────────────────────────────────────────────────
+
+function renderBoss(): HTMLElement {
+  const subjectLessons = lessons.filter(l => l.subject === currentSubject);
+  if (subjectLessons.length === 0 || !profile) {
+    const empty = document.createElement('div');
+    empty.textContent = 'No lessons available for boss battle';
+    return empty;
+  }
+
+  const state = currentBoss ?? startBossBattle(subjectLessons, currentSubject);
+  if (!currentBoss) {
+    currentBoss = state;
+    bossSettled = false;
+  }
+
+  const advance = async (): Promise<void> => {
+    if (bossSettled) return;
+    if (isBossDefeated())       return settleBossBattle(state, 'completed');
+    if (goToNextBossQuestion()) { render(); return; }
+    return settleBossBattle(state, 'completed');   // pool exhausted
+  };
+
+  return renderBossScreen({
+    subject: currentSubject,
+    onSelectAnswer: (index) => {
+      selectBossAnswer(index);
+      void recordBossAnswer(index);
+    },
+    onUseHint: () => { useBossHint(); },
+    onNext:    () => { void advance(); },
+    onFinish:  () => { void advance(); },
+    onTimeUp:  () => { void settleBossBattle(state, 'timeout'); },
+    onGoBack:  () => {
+      currentBoss = null;
+      void navigateTo('dashboard');
+    },
+  });
+}
+
+/**
+ * End a boss battle: record the attempt and show the summary.
+ *
+ * One function because there were two near-identical copies of this — the
+ * defeated branch and the ran-out-of-questions branch — that had to be kept in
+ * step by hand, plus a third partial copy inside onTimeUp.
+ */
+async function settleBossBattle(
+  state:   BossState,
+  outcome: 'completed' | 'timeout',
+): Promise<void> {
+  if (bossSettled) return;
+  bossSettled = true;   // claimed before the first await, see the flag's comment
+
+  const answered = state.answers.length;
+  const score    = outcome === 'timeout' ? 0 : calculateBossScore();
+  const xp       = outcome === 'timeout' ? 0 : calculateBossXP(score, answered);
+
+  // Running out of time earns nothing, so there is no attempt worth recording.
+  if (outcome === 'completed' && profile) {
+    await saveProgress({
+      nickname:    profile.nickname,
+      kind:        'boss',
+      lessonTitle: `${currentSubject} Boss Battle`,
+      subject:     currentSubject,
+      score,
+      xpEarned:    xp,
+      attempts:    answered,
+      hintsUsed:   state.hintsUsed,
+      completedAt: new Date().toISOString(),
     });
   }
 
-  layout.appendChild(sidebar);
-  layout.appendChild(mainContent);
-  app.appendChild(layout);
+  showSummary(renderBossSummary(score, xp, state.hintsUsed, answered, () => {
+    currentBoss = null;
+    void navigateTo('dashboard');
+  }));
 }
 
 

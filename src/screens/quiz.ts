@@ -12,10 +12,6 @@ export interface QuizState {
 
 let currentQuiz: QuizState | null = null;
 
-export function getHintTokenCount(profile: { hintsRemaining: number }): number {
-  return profile.hintsRemaining || 0;
-}
-
 export async function startQuiz(lesson: Lesson, profile: { hintsRemaining: number }): Promise<QuizState> {
   currentQuiz = {
     lesson,

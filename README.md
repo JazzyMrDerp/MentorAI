@@ -29,7 +29,7 @@ otherwise:
   request.
 - **TypeScript in strict mode**, because types compile away and cost nothing at runtime.
 
-The production bundle is 47.4 kB gzipped of JavaScript and 6.5 kB gzipped of CSS, plus ten
+The production bundle is 45.9 kB gzipped of JavaScript and 6.6 kB gzipped of CSS, plus ten
 lazily-loaded lesson chunks of roughly 0.6 kB each.
 
 ## Stack
@@ -39,8 +39,8 @@ lazily-loaded lesson chunks of roughly 0.6 kB each.
 | Language | TypeScript (strict) |
 | UI | Vanilla DOM, no framework |
 | Storage | IndexedDB via [Dexie](https://dexie.org/) 4 |
-| Build | Vite 5 |
-| Offline | `vite-plugin-pwa` (Workbox), 21 precached entries |
+| Build | Vite 8 |
+| Offline | `vite-plugin-pwa` (Workbox), 27 precached entries |
 | AI | Google Gemini 3.6 Flash, behind a server-side proxy |
 
 Dexie is the only runtime dependency. Everything else — routing, rendering, state,
@@ -48,7 +48,7 @@ animation, icons — is hand-written or CSS.
 
 ## Running it
 
-Requires Node 20 or newer. CI runs the suite on 20 and 24.
+Requires Node 20.19 or newer — the floor Vite 8 sets. CI runs the suite on 20 and 24.
 
 ```bash
 npm install
