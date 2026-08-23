@@ -185,6 +185,12 @@ This replaced a `preload.ts` that generated ten lessons automatically on first b
 put the network on the boot path, and on a public deployment it spent ten generations of
 quota per visitor who never asked for any of them.
 
+**Two ways in.** Quiz answers and boss answers both route through `markQuestionAnswered`,
+the only place in the app that enqueues work: a correct answer below max difficulty queues a
+`replace_question`, and acing every question in a lesson queues a `generate_lesson` for the
+next topic. The boss battle fed nothing until its question pool started carrying the lesson
+id an answer has to be attributed to.
+
 **Visible state.** A dot in the top-right corner is green online, red offline, and pulses gold
 while the queue drains. It is mounted on `<body>` rather than the app root, because navigation
 replaces the root's `innerHTML` wholesale and would otherwise destroy it mid-drain.
@@ -195,6 +201,12 @@ overlapping drains processing each item once, retry counting, the `MAX_RETRIES` 
 connection lost mid-drain leaving the rest queued, and a throwing UI listener not stranding the
 queue. The Gemini layer is mocked; Dexie runs for real against `fake-indexeddb`, so retry
 counters are asserted against actual IndexedDB rows.
+
+[`src/db.test.ts`](src/db.test.ts) covers the layer underneath — the idempotence gate that
+stops a retake re-queueing every question it re-answers, the difficulty and topic-catalogue
+bounds on what gets enqueued at all, and the XP totals the profile is rebuilt from. The
+`version(1)` → `version(2)` upgrade has [its own file](src/db.migration.test.ts), because
+testing it needs a database that has never been opened at version 2.
 
 ## Offline, and how it's verified
 
@@ -337,10 +349,6 @@ declared and never made.
 
 This section is deliberately specific. Nothing below is fixed yet.
 
-- **The boss battle does not feed the sync engine.** The quiz path records every answer via
-  `markQuestionAnswered`, but `startBossBattle` builds its question pool with
-  `flatMap(l => l.questions)` and discards the lesson id, so boss answers cannot be attributed
-  to a lesson. Wiring it needs `BossState` to carry `{ lessonId, questionIndex }`.
 - **Generated answers are checked for shape, not for truth.** `isValidQuestion` proves a
   question is *presentable* — four non-empty choices, `correctIndex` an integer inside the
   array, difficulty in range. Nothing verifies the marked answer is the mathematically
@@ -372,11 +380,12 @@ This section is deliberately specific. Nothing below is fixed yet.
   labelled as data with an instruction not to follow it — which lowers the odds of a
   successful injection without eliminating them. Everything else the app sends is an enum
   or an index.
-- **No URL routing.** Navigation is held in module-level state, so a page refresh returns to
-  the onboarding screen and no view is linkable.
-- **Test coverage stops short of the screens.** The sync engine, the proxy, the prompt
-  builders, the output validators, the escaper and the failure classifiers are covered — 150
-  cases. The screens and `db.ts` are not.
+- **No URL routing.** Navigation is held in module-level state, so a page refresh drops a
+  returning student back on the dashboard whatever they were doing, the browser's Back button
+  leaves the app, and no view is linkable.
+- **Test coverage stops short of the screens.** The sync engine, the local database, the
+  schema migration, the proxy, the prompt builders, the output validators, the escaper and
+  the failure classifiers are covered — 204 cases. The screens are not.
 
 ## Project history
 
