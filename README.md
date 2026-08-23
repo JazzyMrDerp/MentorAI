@@ -29,7 +29,7 @@ otherwise:
   request.
 - **TypeScript in strict mode**, because types compile away and cost nothing at runtime.
 
-The production bundle is 45.9 kB gzipped of JavaScript and 6.6 kB gzipped of CSS, plus ten
+The production bundle is 46.4 kB gzipped of JavaScript and 6.6 kB gzipped of CSS, plus ten
 lazily-loaded lesson chunks of roughly 0.6 kB each.
 
 ## Stack
@@ -212,9 +212,8 @@ testing it needs a database that has never been opened at version 2.
 
 Navigation is the URL. [`src/router.ts`](src/router.ts) is 178 lines with no dependencies:
 it parses `location.hash` into a `Route`, writes one back, and hands every change to a
-single resolver in `main.ts`. The main bundle after it is 149.2 kB, 46.4 kB gzipped —
-unchanged to that precision, because the delegator and the workarounds it forced came out
-in the same change.
+single resolver in `main.ts`. It costs about 0.5 kB gzipped — 45.9 kB to 46.4 kB — because
+the click delegator and the workarounds it forced came out in the same change.
 
 ```
 #/                  dashboard
